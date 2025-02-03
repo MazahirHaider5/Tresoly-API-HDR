@@ -8,6 +8,8 @@ export interface IVault extends Document {
   password: string;
   secure_generated_password: string;
   tags: string[];
+  icon: string;
+  is_liked: boolean;
 }
 
 const VaultSchema: Schema = new Schema(
@@ -41,6 +43,15 @@ const VaultSchema: Schema = new Schema(
     tags: {
       type: [String],
       required: false,
+    },
+    icon: {
+      type: String,
+      required: false,
+    },
+    is_liked: {
+      type: Boolean,
+      required: false,
+      default: false,
     },
   },
   { timestamps: true }
