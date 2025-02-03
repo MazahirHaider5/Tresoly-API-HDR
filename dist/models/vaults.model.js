@@ -66,5 +66,14 @@ const VaultSchema = new mongoose_1.Schema({
         type: [String],
         required: false,
     },
+    icon: {
+        type: String,
+        required: false,
+    },
+    is_liked: {
+        type: Boolean,
+        required: false,
+        default: false,
+    },
 }, { timestamps: true });
 exports.Vault = mongoose_1.default.model("Vault", VaultSchema);
