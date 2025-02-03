@@ -333,3 +333,63 @@ export const getAllVaults = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const getVaultCategoryCounts = async (req: Request, res: Response) => {
+  try {
+    const token =
+      req.cookies.accessToken ||
+      (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized, token not provided",
+      });
+    }
+
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
+      id: string;
+    };
+    const userId = decodedToken.id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const categoryCounts = await Vault.aggregate([
+      { $match: { user_id: user._id } },
+      {
+        $group: {
+          _id: "$vault_category",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const formattedCounts = {
+      browser: 0,
+      mobile: 0,
+      other: 0
+    };
+
+    categoryCounts.forEach(category => {
+      formattedCounts[category._id as keyof typeof formattedCounts] = category.count;
+    });
+
+    return res.status(200).json({
+      success: true,
+      categoryCounts: formattedCounts
+    });
+  } catch (error) {
+    console.error("Error getting vault category counts:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: (error as Error).message,
+    });
+  }
+};
