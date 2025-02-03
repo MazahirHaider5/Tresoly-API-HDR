@@ -22,6 +22,7 @@ export const userSignup = async (req: Request, res: Response) => {
   }
 
   try {
+    // Check if the user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({
@@ -29,27 +30,30 @@ export const userSignup = async (req: Request, res: Response) => {
         message: "User with this email already exists",
       });
     }
-    const hashedPassword = await hashPassword(password);
-    const generatedOTP = Math.floor(1000 + Math.random() * 9000).toString();
 
-    userCache.set(email, {
+    // Hash the password
+    const hashedPassword = await hashPassword(password);
+
+    // Create a new user and save to database
+    const newUser = new User({
       email,
-      name: name || "Tresorly User",
+      name,
       phone,
       password: hashedPassword,
-      otp: generatedOTP,
-      otp_expiry: new Date(Date.now() + 90 * 1000),
       signup_date: new Date(),
     });
 
-    const subject = "Tresorly Email Verification Mail";
-    const body = `Your OTP is ${generatedOTP}. It will expire in 90 seconds.`;
-    await sendMail(email, subject, body);
+    await newUser.save();
 
     return res.status(201).json({
       success: true,
-      message:
-        "OTP sent to your email. Please verify to complete registration.",
+      message: "User registered successfully",
+      user: {
+        id: newUser._id,
+        email: newUser.email,
+        name: newUser.name,
+        phone: newUser.phone,
+      },
     });
   } catch (error) {
     console.error("Error creating user:", error);

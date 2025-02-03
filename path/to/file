@@ -1,0 +1,46 @@
+export const userSignup = async (req: Request, res: Response) => {
+  const { email, name, phone, password } = req.body;
+
+  if (!email || !password || !name || !phone) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Missing required fields" });
+  }
+
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "User with this email already exists",
+      });
+    }
+    const hashedPassword = await hashPassword(password);
+
+    const newUser = await User.create({
+      email,
+      name: name || "Tresorly User",
+      phone,
+      password: hashedPassword,
+      signup_date: new Date(),
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      user: {
+        id: newUser._id,
+        email: newUser.email,
+        name: newUser.name,
+        phone: newUser.phone,
+      },
+    });
+  } catch (error) {
+    console.error("Error creating user:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error occurred while creating the user",
+      error: (error as Error).message,
+    });
+  }
+}; 

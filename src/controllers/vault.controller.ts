@@ -3,6 +3,22 @@ import jwt from "jsonwebtoken";
 import { Vault } from "../models/vaults.model";
 import { hashPassword } from "../utils/bcrypt";
 import User from "../models/users.model";
+import multer from "multer";
+
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/"); 
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+const upload = multer({ storage });
+
+// Middleware to handle image upload
+export const uploadIcon = upload.single("icon");
+
 
 export const createVault = async (req: Request, res: Response) => {
   try {
@@ -37,6 +53,7 @@ export const createVault = async (req: Request, res: Response) => {
       password,
       secure_generated_password,
       tags,
+      is_liked,
     } = req.body;
 
     if (
@@ -46,12 +63,10 @@ export const createVault = async (req: Request, res: Response) => {
       !password ||
       !["browser", "mobile", "other"].includes(vault_category)
     ) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Invalid or missing required fields",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or missing required fields",
+      });
     }
 
     const hashedPassword = await hashPassword(password);
@@ -64,6 +79,8 @@ export const createVault = async (req: Request, res: Response) => {
       password: hashedPassword,
       secure_generated_password,
       tags,
+      icon: req.file ? `/uploads/${req.file.filename}` : "",
+      is_liked: is_liked === "true",
     });
 
     await newVault.save();
@@ -82,7 +99,6 @@ export const createVault = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const getUserVaults = async (req: Request, res: Response) => {
   try {
     const token =
