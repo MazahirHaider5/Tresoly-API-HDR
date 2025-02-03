@@ -225,7 +225,6 @@ export const updateVault = async (req: Request, res: Response) => {
     if (password) {
       updatedPassword = await hashPassword(password);
     }
-
     vault.vault_category = vault_category || vault.vault_category;
     vault.vault_site_address = vault_site_address || vault.vault_site_address;
     vault.vault_username = vault_username || vault.vault_username;
