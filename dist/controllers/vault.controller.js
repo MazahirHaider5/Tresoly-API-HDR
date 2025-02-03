@@ -17,63 +17,101 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const vaults_model_1 = require("../models/vaults.model");
 const bcrypt_1 = require("../utils/bcrypt");
 const users_model_1 = __importDefault(require("../models/users.model"));
+const multer_1 = __importDefault(require("multer"));
+const storage = multer_1.default.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, "uploads/");
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + "-" + file.originalname);
+    },
+});
+const fileFilter = (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+        cb(null, true);
+    }
+    else {
+        cb(new Error("Only images are allowed"), false);
+    }
+};
+const upload = (0, multer_1.default)({ storage, fileFilter }).single("icon");
 const createVault = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const token = req.cookies.accessToken ||
-            (req.headers.authorization && req.headers.authorization.split(" ")[1]);
-        if (!token) {
-            return res.status(401).json({
-                success: false,
-                message: "Unauthorized, token not provided",
-            });
-        }
-        const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-        const userId = decodedToken.id;
-        const user = yield users_model_1.default.findById(userId);
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: "User not found",
-            });
-        }
-        const { vault_category, vault_site_address, vault_username, password, secure_generated_password, tags, } = req.body;
-        if (!vault_category ||
-            !vault_site_address ||
-            !vault_username ||
-            !password ||
-            !["browser", "mobile", "other"].includes(vault_category)) {
-            return res
-                .status(400)
-                .json({
-                success: false,
-                message: "Invalid or missing required fields",
-            });
-        }
-        const hashedPassword = yield (0, bcrypt_1.hashPassword)(password);
-        const newVault = new vaults_model_1.Vault({
-            user_id: userId,
-            vault_category,
-            vault_site_address,
-            vault_username,
-            password: hashedPassword,
-            secure_generated_password,
-            tags,
+    upload(req, res, function (err) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (err) {
+                return res.status(400).json({
+                    success: false,
+                    message: err.message || "Error uploading file",
+                });
+            }
+            try {
+                const token = req.cookies.accessToken ||
+                    (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+                if (!token) {
+                    return res.status(401).json({
+                        success: false,
+                        message: "Unauthorized, token not provided",
+                    });
+                }
+                const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+                const userId = decodedToken.id;
+                const user = yield users_model_1.default.findById(userId);
+                if (!user) {
+                    return res.status(401).json({
+                        success: false,
+                        message: "User not found",
+                    });
+                }
+                // Parse form-data fields
+                const { vault_category, vault_site_address, vault_username, password, secure_generated_password, tags, is_liked, } = req.body;
+                // Validate required fields
+                if (!vault_category ||
+                    !vault_site_address ||
+                    !vault_username ||
+                    !password ||
+                    !["browser", "mobile", "other"].includes(vault_category)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Invalid or missing required fields",
+                    });
+                }
+                // Parse boolean field correctly
+                const isLikedBool = is_liked === "true" || is_liked === true;
+                // Convert tags string to an array if necessary
+                let parsedTags = [];
+                if (tags) {
+                    parsedTags = Array.isArray(tags) ? tags : JSON.parse(tags);
+                }
+                // Hash password before saving
+                const hashedPassword = yield (0, bcrypt_1.hashPassword)(password);
+                const newVault = new vaults_model_1.Vault({
+                    user_id: userId,
+                    vault_category,
+                    vault_site_address,
+                    vault_username,
+                    password: hashedPassword,
+                    secure_generated_password,
+                    tags: parsedTags,
+                    icon: req.file ? req.file.path : "", // Save file path if uploaded
+                    is_liked: isLikedBool,
+                });
+                yield newVault.save();
+                return res.status(201).json({
+                    success: true,
+                    message: "Vault created successfully",
+                    vault: newVault,
+                });
+            }
+            catch (error) {
+                console.error("Error creating vault:", error);
+                return res.status(500).json({
+                    success: false,
+                    message: "Internal server error",
+                    error: error.message,
+                });
+            }
         });
-        yield newVault.save();
-        return res.status(201).json({
-            success: true,
-            message: "Vault created successfully",
-            vault: newVault,
-        });
-    }
-    catch (error) {
-        console.error("Error creating vault:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error",
-            error: error.message,
-        });
-    }
+    });
 });
 exports.createVault = createVault;
 const getUserVaults = (req, res) => __awaiter(void 0, void 0, void 0, function* () {

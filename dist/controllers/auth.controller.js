@@ -28,6 +28,7 @@ const userSignup = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             .json({ success: false, message: "Missing required fields" });
     }
     try {
+        // Check if the user already exists
         const existingUser = yield users_model_1.default.findOne({ email });
         if (existingUser) {
             return res.status(409).json({
@@ -35,23 +36,26 @@ const userSignup = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                 message: "User with this email already exists",
             });
         }
+        // Hash the password
         const hashedPassword = yield (0, bcrypt_1.hashPassword)(password);
-        const generatedOTP = Math.floor(1000 + Math.random() * 9000).toString();
-        userCache.set(email, {
+        // Create a new user and save to database
+        const newUser = new users_model_1.default({
             email,
-            name: name || "Tresorly User",
+            name,
             phone,
             password: hashedPassword,
-            otp: generatedOTP,
-            otp_expiry: new Date(Date.now() + 90 * 1000),
             signup_date: new Date(),
         });
-        const subject = "Tresorly Email Verification Mail";
-        const body = `Your OTP is ${generatedOTP}. It will expire in 90 seconds.`;
-        yield (0, sendMail_1.sendMail)(email, subject, body);
+        yield newUser.save();
         return res.status(201).json({
             success: true,
-            message: "OTP sent to your email. Please verify to complete registration.",
+            message: "User registered successfully",
+            user: {
+                id: newUser._id,
+                email: newUser.email,
+                name: newUser.name,
+                phone: newUser.phone,
+            },
         });
     }
     catch (error) {

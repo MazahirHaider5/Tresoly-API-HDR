@@ -8,97 +8,126 @@ import multer from "multer";
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/"); 
+    cb(null, "uploads/");
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + "-" + file.originalname);
   },
 });
-const upload = multer({ storage });
 
-// Middleware to handle image upload
-export const uploadIcon = upload.single("icon");
+const fileFilter = (req: Request, file: Express.Multer.File, cb: any) => {
+  if (file.mimetype.startsWith("image/")) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only images are allowed"), false);
+  }
+};
+
+const upload = multer({ storage, fileFilter }).single("icon");
 
 
 export const createVault = async (req: Request, res: Response) => {
-  try {
-    const token =
-      req.cookies.accessToken ||
-      (req.headers.authorization && req.headers.authorization.split(" ")[1]);
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized, token not provided",
-      });
-    }
-
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
-      id: string;
-    };
-    const userId = decodedToken.id;
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    const {
-      vault_category,
-      vault_site_address,
-      vault_username,
-      password,
-      secure_generated_password,
-      tags,
-      is_liked,
-    } = req.body;
-
-    if (
-      !vault_category ||
-      !vault_site_address ||
-      !vault_username ||
-      !password ||
-      !["browser", "mobile", "other"].includes(vault_category)
-    ) {
+  upload(req, res, async function (err) {
+    if (err) {
       return res.status(400).json({
         success: false,
-        message: "Invalid or missing required fields",
+        message: err.message || "Error uploading file",
       });
     }
 
-    const hashedPassword = await hashPassword(password);
+    try {
+      const token =
+        req.cookies.accessToken ||
+        (req.headers.authorization && req.headers.authorization.split(" ")[1]);
 
-    const newVault = new Vault({
-      user_id: userId,
-      vault_category,
-      vault_site_address,
-      vault_username,
-      password: hashedPassword,
-      secure_generated_password,
-      tags,
-      icon: req.file ? `/uploads/${req.file.filename}` : "",
-      is_liked: is_liked === "true",
-    });
+      if (!token) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized, token not provided",
+        });
+      }
 
-    await newVault.save();
+      const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
+        id: string;
+      };
+      const userId = decodedToken.id;
 
-    return res.status(201).json({
-      success: true,
-      message: "Vault created successfully",
-      vault: newVault,
-    });
-  } catch (error) {
-    console.error("Error creating vault:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: (error as Error).message,
-    });
-  }
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      // Parse form-data fields
+      const {
+        vault_category,
+        vault_site_address,
+        vault_username,
+        password,
+        secure_generated_password,
+        tags,
+        is_liked,
+      } = req.body;
+
+      // Validate required fields
+      if (
+        !vault_category ||
+        !vault_site_address ||
+        !vault_username ||
+        !password ||
+        !["browser", "mobile", "other"].includes(vault_category)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid or missing required fields",
+        });
+      }
+
+      // Parse boolean field correctly
+      const isLikedBool = is_liked === "true" || is_liked === true;
+
+      // Convert tags string to an array if necessary
+      let parsedTags: string[] = [];
+      if (tags) {
+        parsedTags = Array.isArray(tags) ? tags : JSON.parse(tags);
+      }
+
+      // Hash password before saving
+      const hashedPassword = await hashPassword(password);
+
+      const newVault = new Vault({
+        user_id: userId,
+        vault_category,
+        vault_site_address,
+        vault_username,
+        password: hashedPassword,
+        secure_generated_password,
+        tags: parsedTags,
+        icon: req.file ? req.file.path : "", // Save file path if uploaded
+        is_liked: isLikedBool,
+      });
+
+      await newVault.save();
+
+      return res.status(201).json({
+        success: true,
+        message: "Vault created successfully",
+        vault: newVault,
+      });
+    } catch (error) {
+      console.error("Error creating vault:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: (error as Error).message,
+      });
+    }
+  });
 };
+
+
 export const getUserVaults = async (req: Request, res: Response) => {
   try {
     const token =
