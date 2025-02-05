@@ -1,6 +1,6 @@
-    import { Router } from "express";
+import { Router } from "express";
 import { verifyToken } from "../middlewares/authenticate";
-import { createVault, deleteVault, getAllVaults, getUserVaults, updateVault, getVaultCategoryCounts } from "../controllers/vault.controller";
+import { createVault, deleteVault, getAllVaults, getUserVaults, updateVault, getVaultCategoryCounts, getRecentlyUsedVaults } from "../controllers/vault.controller";
 
 
 const router = Router();
@@ -12,6 +12,7 @@ router.delete("/deleteVault/:vaultId", verifyToken, deleteVault);
 
 router.get("/getAllVaults", getAllVaults);
 router.get('/categoryCount', getVaultCategoryCounts);
+router.get('/recentlyUsed', getRecentlyUsedVaults);
 
 
 export default router;
