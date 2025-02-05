@@ -393,3 +393,48 @@ export const getVaultCategoryCounts = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const getRecentlyUsedVaults = async (req: Request, res: Response) => {
+  try {
+    const token =
+      req.cookies.accessToken ||
+      (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized, token not provided",
+      });
+    }
+
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
+      id: string;
+    };
+    const userId = decodedToken.id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    const recentVaults = await Vault.find({ user_id: userId })
+      .sort({ updatedAt: -1 })
+      .limit(3)
+      .select('vault_site_address vault_username icon is_liked vault_category');
+
+
+    return res.status(200).json({
+      success: true,
+      recentVaults,
+    });
+  } catch (error) {
+    console.error("Error fetching recent vaults:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: (error as Error).message,
+    });
+  }
+};
