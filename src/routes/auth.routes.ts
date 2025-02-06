@@ -5,7 +5,9 @@ import {
     requestPasswordResetOtp,
     resendPasswordResetOtp,
     resetPassword,
-    verifyPasswordResetOtp
+    verifyPasswordResetOtp,
+    toggleTwoFactorAuth,
+    verifyTwoFactorLogin
 } from "../controllers/auth.controller";
 import { verifyAccessToken } from "../utils/jwt";
 import { userSignup, verifySignupOtp } from "../controllers/auth.controller";
@@ -27,5 +29,7 @@ router.post("/resetPassword", resetPassword);
 router.get("/google", loginWithGoogle);
 router.get("/google/callback", googleCallback);
 
+router.post('/toggle-2fa', toggleTwoFactorAuth);
+router.post('/verify-2fa', verifyTwoFactorLogin);
 
 export default router;
