@@ -9,6 +9,7 @@ import User, { IUser } from "../models/users.model";
 import { sendMail } from "../utils/sendMail";
 import { generateOtp } from "../utils/otp";
 import NodeCache from "node-cache";
+import jwt from "jsonwebtoken";
 
 const userCache = new NodeCache({ stdTTL: 90 });
 
@@ -137,7 +138,7 @@ export const login = async (req: Request, res: Response) => {
       .json({ success: false, message: "Email and password are required" });
   }
   try {
-    const user = await User.findOne({ email }).select("email password");
+    const user = await User.findOne({ email }).select("email password is_two_factor");
 
     if (!user) {
       return res
@@ -152,35 +153,42 @@ export const login = async (req: Request, res: Response) => {
         .json({ success: false, message: "Incorrect password" });
     }
 
+    if (user.is_two_factor) {
+      const otp = generateOtp();
+      user.otp = otp;
+      user.otp_expiry = new Date(Date.now() + 90 * 1000); // 90 seconds expiry
+      await user.save();
+
+      const subject = "Login Verification Code";
+      const body = `Your login verification code is: ${otp}. It will expire in 90 seconds.`;
+      await sendMail(user.email, subject, body);
+
+      return res.status(200).json({
+        success: true,
+        message: "2FA verification code sent to email",
+        requires2FA: true
+      });
+    }
+
     const userPayload: IUser = user.toObject();
     delete userPayload.password;
 
     const accessToken = generateAccessToken(userPayload);
-    const refreshToken = generateRefreshToken(userPayload);
 
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "none",
-      maxAge: 24 * 60 * 60 * 1000, // 1 day expiration
-    });
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days expiration
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     user.last_login = new Date();
     await user.save();
-    
-    
+
     return res.status(200).json({
       success: true,
       message: "Login successful",
       user: userPayload,
-      accessToken: accessToken,
-      refreshToken: refreshToken,
     });
   } catch (error) {
     console.error("Error during login:", error);
@@ -368,6 +376,115 @@ export const logout = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error during logout",
+      error: (error as Error).message,
+    });
+  }
+};
+
+export const toggleTwoFactorAuth = async (req: Request, res: Response) => {
+  try {
+    const token = req.cookies.accessToken ||
+      (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized, token not provided",
+      });
+    }
+
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
+      id: string;
+    };
+    
+    const userId = decodedToken.id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    user.is_two_factor = !user.is_two_factor;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Two-factor authentication ${user.is_two_factor ? 'enabled' : 'disabled'} successfully`,
+      is_two_factor: user.is_two_factor
+    });
+  } catch (error) {
+    console.error("Error toggling 2FA:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: (error as Error).message,
+    });
+  }
+};
+
+export const verifyTwoFactorLogin = async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({
+      success: false,
+      message: "Email and verification code are required"
+    });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    if (user.otp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid verification code"
+      });
+    }
+
+    if (user.otp_expiry && new Date() > user.otp_expiry) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification code has expired"
+      });
+    }
+
+    user.otp = null;
+    user.otp_expiry = null;
+    user.last_login = new Date();
+    await user.save();
+
+    const userPayload: IUser = user.toObject();
+    delete userPayload.password;
+
+    const accessToken = generateAccessToken(userPayload);
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      user: userPayload,
+      
+    });
+  } catch (error) {
+    console.error("Error verifying 2FA:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
       error: (error as Error).message,
     });
   }
