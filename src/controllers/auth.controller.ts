@@ -23,7 +23,6 @@ export const userSignup = async (req: Request, res: Response) => {
   }
 
   try {
-    // Check if the user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({
@@ -31,11 +30,7 @@ export const userSignup = async (req: Request, res: Response) => {
         message: "User with this email already exists",
       });
     }
-
-    // Hash the password
     const hashedPassword = await hashPassword(password);
-
-    // Create a new user and save to database
     const newUser = new User({
       email,
       name,
@@ -43,7 +38,6 @@ export const userSignup = async (req: Request, res: Response) => {
       password: hashedPassword,
       signup_date: new Date(),
     });
-
     await newUser.save();
 
     return res.status(201).json({
@@ -138,7 +132,7 @@ export const login = async (req: Request, res: Response) => {
       .json({ success: false, message: "Email and password are required" });
   }
   try {
-    const user = await User.findOne({ email }).select("email password is_two_factor");
+    const user = await User.findOne({ email }).select("email password");
 
     if (!user) {
       return res
@@ -153,22 +147,22 @@ export const login = async (req: Request, res: Response) => {
         .json({ success: false, message: "Incorrect password" });
     }
 
-    if (user.is_two_factor) {
-      const otp = generateOtp();
-      user.otp = otp;
-      user.otp_expiry = new Date(Date.now() + 90 * 1000); // 90 seconds expiry
-      await user.save();
+    // if (user.is_two_factor) {
+    //   const otp = generateOtp();
+    //   user.otp = otp;
+    //   user.otp_expiry = new Date(Date.now() + 90 * 1000); // 90 seconds expiry
+    //   await user.save();
 
-      const subject = "Login Verification Code";
-      const body = `Your login verification code is: ${otp}. It will expire in 90 seconds.`;
-      await sendMail(user.email, subject, body);
+    //   const subject = "Login Verification Code";
+    //   const body = `Your login verification code is: ${otp}. It will expire in 90 seconds.`;
+    //   await sendMail(user.email, subject, body);
 
-      return res.status(200).json({
-        success: true,
-        message: "2FA verification code sent to email",
-        requires2FA: true
-      });
-    }
+    //   return res.status(200).json({
+    //     success: true,
+    //     message: "2FA verification code sent to email",
+    //     requires2FA: true
+    //   });
+    // }
 
     const userPayload: IUser = user.toObject();
     delete userPayload.password;

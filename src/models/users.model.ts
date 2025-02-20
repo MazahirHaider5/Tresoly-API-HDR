@@ -10,7 +10,6 @@ export interface IUser extends Document {
   password?: string;
   photo?: string;
   stripe_customer_id: string | null;
-  user_type: string;
   otp?: string | null;
   otp_expiry?: Date | null;
   is_verified: boolean;
@@ -23,6 +22,8 @@ export interface IUser extends Document {
   is_email_notification: boolean;
   signup_date: Date;
   last_login: Date;
+  role: string;
+  account_status: string;
 }
 
 // Mongoose schema
@@ -51,10 +52,6 @@ const UserSchema: Schema = new Schema<IUser>({
   stripe_customer_id: {
     type: String,
     default: null
-  },
-  user_type: {
-    type: String,
-    required: false
   },
   otp: {
     type: String,
@@ -97,7 +94,9 @@ const UserSchema: Schema = new Schema<IUser>({
     default: null
   },
   reset_token: { type: String },
-  reset_token_expiry: { type: Date }
+  reset_token_expiry: { type: Date },
+  role: { type: String, default: "user" },
+  account_status: { type: String, default: "active" }
 });
 
 export default mongoose.model<IUser>("Users", UserSchema);
