@@ -24,6 +24,13 @@ export interface IUser extends Document {
   last_login: Date;
   role: string;
   account_status: string;
+  email_verified_at: Date;
+  two_factor_secret: string;
+  two_factor_recovery_codes: string;
+  two_factor_verified_at: Date;
+  auto_lock_time: number;
+  email_notifications: number;
+  data_breach_alert: number;
 }
 
 // Mongoose schema
@@ -96,7 +103,14 @@ const UserSchema: Schema = new Schema<IUser>({
   reset_token: { type: String },
   reset_token_expiry: { type: Date },
   role: { type: String, default: "user" },
-  account_status: { type: String, default: "active" }
+  account_status: { type: String, default: "active" },
+  email_verified_at: { type: Date },
+  two_factor_secret: { type: String },
+  two_factor_recovery_codes: { type: String },
+  two_factor_verified_at: { type: Date },
+  auto_lock_time: { type: Number, default: 0 },
+  email_notifications: { type: Number, default: 0 },
+  data_breach_alert: { type: Number, default: 0 }
 });
 
 export default mongoose.model<IUser>("Users", UserSchema);

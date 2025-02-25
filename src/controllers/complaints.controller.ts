@@ -5,8 +5,8 @@ import Complaint from "../models/complaint.model";
 export const createComplaint = async (req: Request, res: Response) => {
   try {
     const token =
-        req.cookies.accessToken ||
-        (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+      req.cookies.accessToken ||
+      (req.headers.authorization && req.headers.authorization.split(" ")[1]);
 
     if (!token) {
       return res.status(401).json({
@@ -18,7 +18,7 @@ export const createComplaint = async (req: Request, res: Response) => {
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
     const userId = decodedToken.id;
 
-    const { issue, subject, description } = req.body;
+    const { issue, subject, description, complaint_status } = req.body;
 
     if (!issue || !subject || !description) {
       return res.status(400).json({
@@ -32,6 +32,10 @@ export const createComplaint = async (req: Request, res: Response) => {
       issue,
       subject,
       description,
+      // If complaint_status is provided and valid, use it; otherwise, default to "Pending"
+      complaint_status: complaint_status && ["Pending", "Resolved"].includes(complaint_status)
+        ? complaint_status
+        : "Pending",
     });
 
     const savedComplaint = await newComplaint.save();
@@ -50,26 +54,10 @@ export const createComplaint = async (req: Request, res: Response) => {
   }
 };
 
+
 export const getUserComplaints = async (req: Request, res: Response) => {
   try {
-    const token =
-      req.cookies.accessToken ||
-      (req.headers.authorization && req.headers.authorization.split(" ")[1]);
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized, No token provided"
-      });
-    }
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
-      id: string;
-      email: string;
-    };
-
-    const userId = decodedToken.id;
-
-    const complaints = await Complaint.find({ user_id: userId }).sort({ createdAt: -1 });
+    const complaints = await Complaint.find({}).sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
@@ -83,4 +71,5 @@ export const getUserComplaints = async (req: Request, res: Response) => {
       message: "Internal server error"
     });
   }
-}
+};
+

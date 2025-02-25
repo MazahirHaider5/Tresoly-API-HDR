@@ -4,7 +4,7 @@ import { createComplaint, getUserComplaints } from "../controllers/complaints.co
 
 const router = Router();
 
-router.post("/createComplaint",verifyToken, createComplaint );
+router.post("/createComplaint", createComplaint );
 
 router.get("/getComplaints", getUserComplaints);
 

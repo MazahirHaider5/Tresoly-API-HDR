@@ -4,6 +4,7 @@ import userRoutes from "./user.routes";
 import vaultRoutes from "./vault.routes";
 import complaintRoutes from "./complaint.routes";
 import adminRoutes from "./admin.routes";
+import activityRoutes from "./activities.routes";
 
 
 const router = express.Router();
@@ -13,6 +14,8 @@ router.use("/user", userRoutes);
 router.use("/vault", vaultRoutes);
 router.use("/complaint", complaintRoutes);
 router.use("/admin", adminRoutes);
+router.use("/activities", activityRoutes);
+
 
 
 export default router;

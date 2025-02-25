@@ -10,6 +10,7 @@ import { sendMail } from "../utils/sendMail";
 import { generateOtp } from "../utils/otp";
 import NodeCache from "node-cache";
 import jwt from "jsonwebtoken";
+import Activity from "../models/activity.model";
 
 const userCache = new NodeCache({ stdTTL: 90 });
 
@@ -132,7 +133,7 @@ export const login = async (req: Request, res: Response) => {
       .json({ success: false, message: "Email and password are required" });
   }
   try {
-    const user = await User.findOne({ email }).select("email password");
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res
@@ -165,7 +166,9 @@ export const login = async (req: Request, res: Response) => {
     // }
 
     const userPayload: IUser = user.toObject();
-    delete userPayload.password;
+    delete (userPayload as any).password;
+    delete (userPayload as any).two_factor_secret;
+    delete (userPayload as any).two_factor_recovery_codes;
 
     const accessToken = generateAccessToken(userPayload);
 
@@ -337,6 +340,10 @@ export const resetPassword = async (req: Request, res: Response) => {
     user.is_verified = false;
 
     await user.save();
+    await Activity.create({
+      userId: user._id,
+      activityType: "Password reset"
+    });
 
     return res
       .status(200)
@@ -377,7 +384,8 @@ export const logout = async (req: Request, res: Response) => {
 
 export const toggleTwoFactorAuth = async (req: Request, res: Response) => {
   try {
-    const token = req.cookies.accessToken ||
+    const token =
+      req.cookies.accessToken ||
       (req.headers.authorization && req.headers.authorization.split(" ")[1]);
 
     if (!token) {
@@ -390,7 +398,7 @@ export const toggleTwoFactorAuth = async (req: Request, res: Response) => {
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
       id: string;
     };
-    
+
     const userId = decodedToken.id;
     const user = await User.findById(userId);
     if (!user) {
@@ -402,11 +410,15 @@ export const toggleTwoFactorAuth = async (req: Request, res: Response) => {
 
     user.is_two_factor = !user.is_two_factor;
     await user.save();
+    await Activity.create({
+      userId: user._id,
+      activityType: "Two Factor Authentication changed"
+    });
 
     return res.status(200).json({
       success: true,
-      message: `Two-factor authentication ${user.is_two_factor ? 'enabled' : 'disabled'} successfully`,
-      is_two_factor: user.is_two_factor
+      message: `Two-factor authentication ${user.is_two_factor ? "enabled" : "disabled"} successfully`,
+      is_two_factor: user.is_two_factor,
     });
   } catch (error) {
     console.error("Error toggling 2FA:", error);
@@ -424,7 +436,7 @@ export const verifyTwoFactorLogin = async (req: Request, res: Response) => {
   if (!email || !otp) {
     return res.status(400).json({
       success: false,
-      message: "Email and verification code are required"
+      message: "Email and verification code are required",
     });
   }
 
@@ -433,21 +445,21 @@ export const verifyTwoFactorLogin = async (req: Request, res: Response) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
     if (user.otp !== otp) {
       return res.status(400).json({
         success: false,
-        message: "Invalid verification code"
+        message: "Invalid verification code",
       });
     }
 
     if (user.otp_expiry && new Date() > user.otp_expiry) {
       return res.status(400).json({
         success: false,
-        message: "Verification code has expired"
+        message: "Verification code has expired",
       });
     }
 
@@ -472,7 +484,6 @@ export const verifyTwoFactorLogin = async (req: Request, res: Response) => {
       success: true,
       message: "Login successful",
       user: userPayload,
-      
     });
   } catch (error) {
     console.error("Error verifying 2FA:", error);
@@ -483,3 +494,49 @@ export const verifyTwoFactorLogin = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+export const getLoggedInUserData = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const token = req.cookies.accessToken;
+
+    if (!token) {
+      res.status(401).json({
+        success: false,
+        message: "No access token provided. Please log in.",
+      });
+      return;
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as { id: string };
+
+    const user = await User.findById(decoded.id).select(
+      "-password -two_factor_secret -two_factor_recovery_codes"
+    );
+
+    if (!user) {
+      res.status(404).json({ success: false, message: "User not found" });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "User data fetched successfully",
+      user,
+    });
+  } catch (error) {
+    console.error("Error fetching logged-in user data:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: (error as Error).message,
+    });
+  }
+};
+
