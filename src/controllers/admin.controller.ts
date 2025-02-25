@@ -231,7 +231,8 @@ export const activateOrDeactivateUser = async (req: Request, res: Response) => {
           .status(400)
           .json({ success: false, message: "user is already active" });
       } else {
-        user.account_status === "active";
+        // Correct assignment operator here:
+        user.account_status = "active";
         await user.save();
         return res
           .status(200)
@@ -243,7 +244,8 @@ export const activateOrDeactivateUser = async (req: Request, res: Response) => {
           .status(400)
           .json({ success: false, message: "user is already deactivated" });
       } else {
-        user.account_status !== "active";
+        // Correct assignment operator here:
+        user.account_status = "inactive";
         await user.save();
         return res
           .status(200)
@@ -255,12 +257,12 @@ export const activateOrDeactivateUser = async (req: Request, res: Response) => {
   }
 };
 
+
+
 export const getInfoAboutUsers = async (req: Request, res: Response) => {
   try {
-    const activeUsers = await User.find({ is_active: true }).countDocuments();
-    const inactiveUsers = await User.find({
-      is_active: false
-    }).countDocuments();
+    const activeUsers = await User.find({ account_status: "active" }).countDocuments();
+    const inactiveUsers = await User.find({ account_status: "inactive" }).countDocuments();
     return res
       .status(200)
       .json({ success: true, message: { activeUsers, inactiveUsers } });
@@ -268,6 +270,7 @@ export const getInfoAboutUsers = async (req: Request, res: Response) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
 
 export const getDataOnTimeFrame = async (req: Request, res: Response) => {
   try {

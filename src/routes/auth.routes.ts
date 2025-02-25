@@ -7,7 +7,8 @@ import {
     resetPassword,
     verifyPasswordResetOtp,
     toggleTwoFactorAuth,
-    verifyTwoFactorLogin
+    verifyTwoFactorLogin,
+    getLoggedInUserData
 } from "../controllers/auth.controller";
 import { verifyAccessToken } from "../utils/jwt";
 import { userSignup, verifySignupOtp } from "../controllers/auth.controller";
@@ -20,6 +21,8 @@ router.post("/verifyOtp", verifySignupOtp);
 
 router.post("/login", login);
 router.post("/logout", logout);
+
+router.get("/loggedInUserData", verifyAccessToken, getLoggedInUserData);
 
 router.post("/requestPasswordResetOtp", requestPasswordResetOtp);
 router.post("/resendPasswordResetOtp", resendPasswordResetOtp);

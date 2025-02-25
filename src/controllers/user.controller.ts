@@ -4,6 +4,7 @@ import { comparePassword, hashPassword } from "../utils/bcrypt";
 import { sendMail } from "../utils/sendMail";
 import { uploadImageOnly } from "../config/multer";
 import jwt from "jsonwebtoken";
+import Activity from "../models/activity.model";
 
 
 // Helper function to get user by ID or email
@@ -121,6 +122,10 @@ export const updateUser = [
         user.photo = req.file.path;
       }
       await user.save();
+      await Activity.create({
+        userId: user._id,
+        activityType: "User profile updated"
+      });
       return res.status(200).json({
         success: true,
         message: "Updated successfully",
@@ -261,6 +266,10 @@ export const changePassword = async (req: Request, res: Response) => {
     // Update the password in the database
     user.password = hashedNewPassword;
     await user.save();
+    await Activity.create({
+      userId: user._id,
+      activityType: "Password changed"
+    });
 
     return res.status(200).json({
       success: true,

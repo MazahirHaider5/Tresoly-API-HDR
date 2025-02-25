@@ -7,6 +7,7 @@ export interface IComplaint extends Document {
   subject: string;
   description: string;
   createdAt: Date;
+  complaint_status: "Pending" | "Resolved";
 }
 
 const generateTicketID = (): string => {
@@ -25,6 +26,7 @@ const ComplaintSchema: Schema = new Schema<IComplaint>(
     subject: { type: String, required: true },
     description: { type: String, required: true },
     createdAt: { type: Date, default: Date.now },
+    complaint_status: { type: String, enum: ["Pending", "Resolved"], default: "Pending" },
   },
   { timestamps: true }
 );
