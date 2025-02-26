@@ -178,6 +178,7 @@ export const login = async (req: Request, res: Response) => {
       sameSite: "none",
       maxAge: 24 * 60 * 60 * 1000,
     });
+    
 
     user.last_login = new Date();
     await user.save();
@@ -186,6 +187,7 @@ export const login = async (req: Request, res: Response) => {
       success: true,
       message: "Login successful",
       user: userPayload,
+      accessToken: accessToken
     });
   } catch (error) {
     console.error("Error during login:", error);
