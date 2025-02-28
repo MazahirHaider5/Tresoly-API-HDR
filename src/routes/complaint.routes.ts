@@ -8,4 +8,6 @@ router.post("/createComplaint", createComplaint );
 
 router.get("/getComplaints", getUserComplaints);
 
+router.get("/getComplaint/:id", getUserComplaints);
+
 export default router;
