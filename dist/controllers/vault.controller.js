@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllVaults = exports.deleteVault = exports.updateVault = exports.getUserVaults = exports.createVault = void 0;
+exports.getRecentlyUsedVaults = exports.getVaultCategoryCounts = exports.getAllVaults = exports.deleteVault = exports.updateVault = exports.getUserVaults = exports.createVault = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const vaults_model_1 = require("../models/vaults.model");
 const bcrypt_1 = require("../utils/bcrypt");
@@ -285,3 +285,92 @@ const getAllVaults = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 exports.getAllVaults = getAllVaults;
+const getVaultCategoryCounts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const token = req.cookies.accessToken ||
+            (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized, token not provided",
+            });
+        }
+        const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+        const userId = decodedToken.id;
+        const user = yield users_model_1.default.findById(userId);
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+        const categoryCounts = yield vaults_model_1.Vault.aggregate([
+            { $match: { user_id: user._id } },
+            {
+                $group: {
+                    _id: "$vault_category",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+        const formattedCounts = {
+            browser: 0,
+            mobile: 0,
+            other: 0
+        };
+        categoryCounts.forEach(category => {
+            formattedCounts[category._id] = category.count;
+        });
+        return res.status(200).json({
+            success: true,
+            categoryCounts: formattedCounts
+        });
+    }
+    catch (error) {
+        console.error("Error getting vault category counts:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message,
+        });
+    }
+});
+exports.getVaultCategoryCounts = getVaultCategoryCounts;
+const getRecentlyUsedVaults = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const token = req.cookies.accessToken ||
+            (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized, token not provided",
+            });
+        }
+        const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+        const userId = decodedToken.id;
+        const user = yield users_model_1.default.findById(userId);
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+        const recentVaults = yield vaults_model_1.Vault.find({ user_id: userId })
+            .sort({ updatedAt: -1 })
+            .limit(3)
+            .select('vault_site_address vault_username icon is_liked vault_category');
+        return res.status(200).json({
+            success: true,
+            recentVaults,
+        });
+    }
+    catch (error) {
+        console.error("Error fetching recent vaults:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message,
+        });
+    }
+});
+exports.getRecentlyUsedVaults = getRecentlyUsedVaults;

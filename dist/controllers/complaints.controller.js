@@ -12,9 +12,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserComplaints = exports.createComplaint = void 0;
+exports.getComplaintById = exports.getUserComplaints = exports.createComplaint = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const complaint_model_1 = __importDefault(require("../models/complaint.model"));
+const users_model_1 = __importDefault(require("../models/users.model"));
 const createComplaint = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const token = req.cookies.accessToken ||
@@ -27,18 +28,30 @@ const createComplaint = (req, res) => __awaiter(void 0, void 0, void 0, function
         }
         const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
         const userId = decodedToken.id;
-        const { issue, subject, description } = req.body;
+        const { issue, subject, description, complaint_status } = req.body;
         if (!issue || !subject || !description) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required",
             });
         }
+        const user = yield users_model_1.default.findById(userId).select('name email');
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
         const newComplaint = new complaint_model_1.default({
             user_id: userId,
+            complain_user_name: user.name,
+            complain_user_email: user.email,
             issue,
             subject,
             description,
+            complaint_status: complaint_status && ["Pending", "Resolved"].includes(complaint_status)
+                ? complaint_status
+                : "Pending",
         });
         const savedComplaint = yield newComplaint.save();
         return res.status(201).json({
@@ -58,17 +71,7 @@ const createComplaint = (req, res) => __awaiter(void 0, void 0, void 0, function
 exports.createComplaint = createComplaint;
 const getUserComplaints = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const token = req.cookies.accessToken ||
-            (req.headers.authorization && req.headers.authorization.split(" ")[1]);
-        if (!token) {
-            return res.status(401).json({
-                success: false,
-                message: "Unauthorized, No token provided"
-            });
-        }
-        const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-        const userId = decodedToken.id;
-        const complaints = yield complaint_model_1.default.find({ user_id: userId }).sort({ createdAt: -1 });
+        const complaints = yield complaint_model_1.default.find({}).sort({ createdAt: -1 });
         return res.status(200).json({
             success: true,
             message: "User complaints fetched successfully",
@@ -84,3 +87,29 @@ const getUserComplaints = (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.getUserComplaints = getUserComplaints;
+const getComplaintById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const complaint = yield complaint_model_1.default.findById(id);
+        if (!complaint) {
+            return res.status(404).json({
+                success: false,
+                message: "Complaint not found",
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            message: "Complaint fetched successfully",
+            complaint,
+        });
+    }
+    catch (error) {
+        console.error("Error fetching complaint by ID:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message,
+        });
+    }
+});
+exports.getComplaintById = getComplaintById;

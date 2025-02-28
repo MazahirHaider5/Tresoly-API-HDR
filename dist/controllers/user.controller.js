@@ -17,6 +17,7 @@ const users_model_1 = __importDefault(require("../models/users.model"));
 const bcrypt_1 = require("../utils/bcrypt");
 const multer_1 = require("../config/multer");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const activity_model_1 = __importDefault(require("../models/activity.model"));
 // Helper function to get user by ID or email
 const findUser = (id, email) => __awaiter(void 0, void 0, void 0, function* () {
     let user;
@@ -96,8 +97,7 @@ exports.updateUser = [
     multer_1.uploadImageOnly.single("photo"),
     (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const token = req.cookies.accessToken ||
-                (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+            const token = req.cookies.accessToken || (req.headers.authorization && req.headers.authorization.split(" ")[1]);
             if (!token) {
                 return res.status(401).json({
                     success: false,
@@ -124,6 +124,10 @@ exports.updateUser = [
                 user.photo = req.file.path;
             }
             yield user.save();
+            yield activity_model_1.default.create({
+                userId: user._id,
+                activityType: "User profile updated"
+            });
             return res.status(200).json({
                 success: true,
                 message: "Updated successfully",
@@ -152,7 +156,7 @@ const updateSpecificFields = (req, res) => __awaiter(void 0, void 0, void 0, fun
         }
         const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
         const userId = decodedToken.id;
-        const { language, is_biomatric, is_two_factor, } = req.body;
+        const { language, is_biomatric, is_two_factor, is_email_notification, } = req.body;
         const updateFields = {};
         if (language)
             updateFields.language = language;
@@ -160,6 +164,8 @@ const updateSpecificFields = (req, res) => __awaiter(void 0, void 0, void 0, fun
             updateFields.is_biomatric = is_biomatric;
         if (typeof is_two_factor == "boolean")
             updateFields.is_two_factor = is_two_factor;
+        if (typeof is_email_notification == "boolean")
+            updateFields.is_email_notification = is_email_notification;
         if (Object.keys(updateFields).length == 0) {
             return res.status(400).json({
                 success: false,
@@ -243,6 +249,10 @@ const changePassword = (req, res) => __awaiter(void 0, void 0, void 0, function*
         // Update the password in the database
         user.password = hashedNewPassword;
         yield user.save();
+        yield activity_model_1.default.create({
+            userId: user._id,
+            activityType: "Password changed"
+        });
         return res.status(200).json({
             success: true,
             message: "Password changed successfully",

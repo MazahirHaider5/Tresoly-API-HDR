@@ -34,26 +34,10 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const generateTicketID = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-};
-const ComplaintSchema = new mongoose_1.Schema({
-    user_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Users", required: true },
-    complain_user_name: { type: String, required: true },
-    complain_user_email: { type: String, required: true },
-    ticket_id: { type: String, required: true, unique: true },
-    issue: {
-        type: String,
-        enum: ["Technical Issue", "Downtime", "Billing Issue", "Account Access", "Other"],
-        required: true,
-    },
-    subject: { type: String, required: true },
-    description: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now },
-    complaint_status: { type: String, enum: ["Pending", "Resolved"], default: "Pending" },
-    reply: {
-        type: String,
-        default: ""
-    },
-}, { timestamps: true });
-exports.default = mongoose_1.default.model("Complaint", ComplaintSchema);
+const activitySchema = new mongoose_1.Schema({
+    userId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Users", required: true },
+    activityType: { type: String, required: true }
+}, {
+    timestamps: true
+});
+exports.default = mongoose_1.default.model("Activity", activitySchema);

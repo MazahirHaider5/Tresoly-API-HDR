@@ -9,4 +9,6 @@ router.get("/getUserVaults", authenticate_1.verifyToken, vault_controller_1.getU
 router.patch("/updateVault/:vaultId", authenticate_1.verifyToken, vault_controller_1.updateVault);
 router.delete("/deleteVault/:vaultId", authenticate_1.verifyToken, vault_controller_1.deleteVault);
 router.get("/getAllVaults", vault_controller_1.getAllVaults);
+router.get('/categoryCount', vault_controller_1.getVaultCategoryCounts);
+router.get('/recentlyUsed', vault_controller_1.getRecentlyUsedVaults);
 exports.default = router;

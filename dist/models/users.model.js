@@ -61,10 +61,6 @@ const UserSchema = new mongoose_1.Schema({
         type: String,
         default: null
     },
-    user_type: {
-        type: String,
-        required: false
-    },
     otp: {
         type: String,
         default: null
@@ -106,6 +102,15 @@ const UserSchema = new mongoose_1.Schema({
         default: null
     },
     reset_token: { type: String },
-    reset_token_expiry: { type: Date }
+    reset_token_expiry: { type: Date },
+    role: { type: String, default: "user" },
+    account_status: { type: String, default: "active" },
+    email_verified_at: { type: Date },
+    two_factor_secret: { type: String },
+    two_factor_recovery_codes: { type: String },
+    two_factor_verified_at: { type: Date },
+    auto_lock_time: { type: Number, default: 0 },
+    email_notifications: { type: Number, default: 0 },
+    data_breach_alert: { type: Number, default: 0 }
 });
 exports.default = mongoose_1.default.model("Users", UserSchema);
