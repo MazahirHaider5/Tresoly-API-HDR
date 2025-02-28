@@ -13,11 +13,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.changePassword = exports.updateSpecificFields = exports.updateUser = exports.deleteAccount = exports.getUsers = void 0;
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const users_model_1 = __importDefault(require("../models/users.model"));
 const bcrypt_1 = require("../utils/bcrypt");
 const multer_1 = require("../config/multer");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const activity_model_1 = __importDefault(require("../models/activity.model"));
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 // Helper function to get user by ID or email
 const findUser = (id, email) => __awaiter(void 0, void 0, void 0, function* () {
     let user;
@@ -54,7 +58,7 @@ const getUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         return res.status(500).json({
             success: false,
             message: "Error occurred while fetching users",
-            error: error.message
+            error: error.message,
         });
     }
 });
@@ -66,7 +70,7 @@ const deleteAccount = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         if (!token) {
             return res.status(401).json({
                 success: false,
-                message: "Unauthorized, no token provided"
+                message: "Unauthorized, no token provided",
             });
         }
         const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
@@ -75,12 +79,12 @@ const deleteAccount = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         if (!user) {
             return res.status(404).json({
                 success: false,
-                message: "User not found"
+                message: "User not found",
             });
         }
         return res.status(200).json({
             success: true,
-            message: "Account deleted successfully"
+            message: "Account deleted successfully",
         });
     }
     catch (error) {
@@ -88,7 +92,7 @@ const deleteAccount = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         return res.status(500).json({
             success: false,
             message: "Internal server error while deleting the account",
-            error: error.message
+            error: error.message,
         });
     }
 });
@@ -97,11 +101,12 @@ exports.updateUser = [
     multer_1.uploadImageOnly.single("photo"),
     (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const token = req.cookies.accessToken || (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+            const token = req.cookies.accessToken ||
+                (req.headers.authorization && req.headers.authorization.split(" ")[1]);
             if (!token) {
                 return res.status(401).json({
                     success: false,
-                    message: "Unauthorized , token not provided"
+                    message: "Unauthorized , token not provided",
                 });
             }
             const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
@@ -110,7 +115,7 @@ exports.updateUser = [
             if (!user) {
                 return res.status(401).json({
                     success: false,
-                    message: "User not found"
+                    message: "User not found",
                 });
             }
             const { email, name, phone } = req.body;
@@ -121,17 +126,33 @@ exports.updateUser = [
             if (phone)
                 user.phone = phone;
             if (req.file) {
+                if (!user.photo) {
+                    console.log("No file provided, skipping deletion.");
+                    return;
+                }
+                const filePath = path_1.default.resolve(process.cwd(), user.photo);
+                if (fs_1.default.existsSync(filePath)) {
+                    fs_1.default.unlink(filePath, (err) => {
+                        if (err)
+                            console.error("Error deleting file:", err);
+                        else
+                            console.log("File deleted successfully:", filePath);
+                    });
+                }
+                else {
+                    console.log("File does not exist:", filePath);
+                }
                 user.photo = req.file.path;
             }
             yield user.save();
             yield activity_model_1.default.create({
                 userId: user._id,
-                activityType: "User profile updated"
+                activityType: "User profile updated",
             });
             return res.status(200).json({
                 success: true,
                 message: "Updated successfully",
-                user
+                user,
             });
         }
         catch (error) {
@@ -139,10 +160,10 @@ exports.updateUser = [
             return res.status(500).json({
                 success: false,
                 message: "Internal server error",
-                error: error.message
+                error: error.message,
             });
         }
-    })
+    }),
 ];
 const updateSpecificFields = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -151,12 +172,12 @@ const updateSpecificFields = (req, res) => __awaiter(void 0, void 0, void 0, fun
         if (!token) {
             return res.status(401).json({
                 success: false,
-                message: "Unauthorized, token not provided"
+                message: "Unauthorized, token not provided",
             });
         }
         const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
         const userId = decodedToken.id;
-        const { language, is_biomatric, is_two_factor, is_email_notification, } = req.body;
+        const { language, is_biomatric, is_two_factor, is_email_notification } = req.body;
         const updateFields = {};
         if (language)
             updateFields.language = language;
@@ -169,29 +190,29 @@ const updateSpecificFields = (req, res) => __awaiter(void 0, void 0, void 0, fun
         if (Object.keys(updateFields).length == 0) {
             return res.status(400).json({
                 success: false,
-                message: "No valid fields provided to update"
+                message: "No valid fields provided to update",
             });
         }
         const updatedUser = yield users_model_1.default.findByIdAndUpdate(userId, updateFields, {
-            new: true
+            new: true,
         });
         if (!updatedUser) {
             return res.status(404).json({
                 success: false,
-                message: "User not found"
+                message: "User not found",
             });
         }
         res.status(200).json({
             success: true,
             message: "User updated successfully",
-            user: updatedUser
+            user: updatedUser,
         });
     }
     catch (error) {
         console.error(error);
         res.status(500).json({
             success: false,
-            message: "Error updating user fields"
+            message: "Error updating user fields",
         });
     }
 });
@@ -251,7 +272,7 @@ const changePassword = (req, res) => __awaiter(void 0, void 0, void 0, function*
         yield user.save();
         yield activity_model_1.default.create({
             userId: user._id,
-            activityType: "Password changed"
+            activityType: "Password changed",
         });
         return res.status(200).json({
             success: true,

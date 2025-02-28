@@ -18,6 +18,8 @@ const vaults_model_1 = require("../models/vaults.model");
 const bcrypt_1 = require("../utils/bcrypt");
 const users_model_1 = __importDefault(require("../models/users.model"));
 const multer_1 = __importDefault(require("multer"));
+const zxcvbn_1 = __importDefault(require("zxcvbn"));
+const crypto_1 = __importDefault(require("crypto"));
 const storage = multer_1.default.diskStorage({
     destination: function (req, file, cb) {
         cb(null, "uploads/");
@@ -77,6 +79,21 @@ const createVault = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 }
                 // Parse boolean field correctly
                 const isLikedBool = is_liked === "true" || is_liked === true;
+                const result = (0, zxcvbn_1.default)(password);
+                let strength = ["Very Weak", "Weak", "Moderate", "Strong", "Very Strong"][result.score];
+                const hash = crypto_1.default
+                    .createHash("sha1")
+                    .update(password)
+                    .digest("hex")
+                    .toUpperCase();
+                // Split hash: First 5 characters (prefix), rest (suffix)
+                const prefix = hash.substring(0, 5);
+                const suffix = hash.substring(5);
+                // Make a request to the HIBP API
+                const response = yield fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
+                const data = yield response.text();
+                // Check if the suffix appears in the response
+                const vulnerability = data.includes(suffix) ? "Breached" : "None";
                 // Convert tags string to an array if necessary
                 let parsedTags = [];
                 if (tags) {
@@ -90,6 +107,9 @@ const createVault = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                     vault_site_address,
                     vault_username,
                     password: hashedPassword,
+                    password_strength: strength,
+                    password_health_score: result.score * 25,
+                    password_vulnerability: vulnerability,
                     secure_generated_password,
                     tags: parsedTags,
                     icon: req.file ? req.file.path : "", // Save file path if uploaded
@@ -309,21 +329,22 @@ const getVaultCategoryCounts = (req, res) => __awaiter(void 0, void 0, void 0, f
             {
                 $group: {
                     _id: "$vault_category",
-                    count: { $sum: 1 }
-                }
-            }
+                    count: { $sum: 1 },
+                },
+            },
         ]);
         const formattedCounts = {
             browser: 0,
             mobile: 0,
-            other: 0
+            other: 0,
         };
-        categoryCounts.forEach(category => {
-            formattedCounts[category._id] = category.count;
+        categoryCounts.forEach((category) => {
+            formattedCounts[category._id] =
+                category.count;
         });
         return res.status(200).json({
             success: true,
-            categoryCounts: formattedCounts
+            categoryCounts: formattedCounts,
         });
     }
     catch (error) {
@@ -358,7 +379,7 @@ const getRecentlyUsedVaults = (req, res) => __awaiter(void 0, void 0, void 0, fu
         const recentVaults = yield vaults_model_1.Vault.find({ user_id: userId })
             .sort({ updatedAt: -1 })
             .limit(3)
-            .select('vault_site_address vault_username icon is_liked vault_category');
+            .select("vault_site_address vault_username icon is_liked vault_category");
         return res.status(200).json({
             success: true,
             recentVaults,
