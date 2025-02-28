@@ -1,19 +1,19 @@
 import { Router } from "express";
 import {
-//   getAllComplaints,
-//   getAllSubscriptions,
+  //   getAllComplaints,
+  //   getAllSubscriptions,
   promoteToAdmin,
   sendAdminPromotionLink,
   SendSetPasswordLink,
-//   replyToComplaint,
+  //   replyToComplaint,
   activateOrDeactivateUser,
   getInfoAboutUsers,
   getDataOnTimeFrame,
-  replyToComplaint
+  replyToComplaint,
 } from "../controllers/admin.controller";
 
 const router = Router();
-//
+
 
 router.post("/sendAdminPromotionLink", sendAdminPromotionLink);
 router.get("/promoteToAdmin", promoteToAdmin);
