@@ -13,7 +13,7 @@ import {
 } from "../controllers/admin.controller";
 
 const router = Router();
-
+//
 
 router.post("/sendAdminPromotionLink", sendAdminPromotionLink);
 router.get("/promoteToAdmin", promoteToAdmin);
