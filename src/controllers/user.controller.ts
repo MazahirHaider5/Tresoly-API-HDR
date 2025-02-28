@@ -1,4 +1,7 @@
 import { Request, Response } from "express";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import User from "../models/users.model";
 import { comparePassword, hashPassword } from "../utils/bcrypt";
 import { sendMail } from "../utils/sendMail";
@@ -6,7 +9,8 @@ import { uploadImageOnly } from "../config/multer";
 import jwt from "jsonwebtoken";
 import Activity from "../models/activity.model";
 
-
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 // Helper function to get user by ID or email
 const findUser = async (id: string | undefined, email?: string) => {
   let user;
@@ -42,7 +46,7 @@ export const getUsers = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: "Error occurred while fetching users",
-      error: (error as Error).message
+      error: (error as Error).message,
     });
   }
 };
@@ -56,7 +60,7 @@ export const deleteAccount = async (req: Request, res: Response) => {
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized, no token provided"
+        message: "Unauthorized, no token provided",
       });
     }
 
@@ -70,20 +74,20 @@ export const deleteAccount = async (req: Request, res: Response) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Account deleted successfully"
+      message: "Account deleted successfully",
     });
   } catch (error) {
     console.error("Error deleting user:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error while deleting the account",
-      error: (error as Error).message
+      error: (error as Error).message,
     });
   }
 };
@@ -92,13 +96,14 @@ export const updateUser = [
   uploadImageOnly.single("photo"),
   async (req: Request, res: Response) => {
     try {
-      const token = req.cookies.accessToken || (req.headers.authorization && req.headers.authorization.split(" ")[1]);
-
+      const token =
+        req.cookies.accessToken ||
+        (req.headers.authorization && req.headers.authorization.split(" ")[1]);
 
       if (!token) {
         return res.status(401).json({
           success: false,
-          message: "Unauthorized , token not provided"
+          message: "Unauthorized , token not provided",
         });
       }
       const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
@@ -109,7 +114,7 @@ export const updateUser = [
       if (!user) {
         return res.status(401).json({
           success: false,
-          message: "User not found"
+          message: "User not found",
         });
       }
       const { email, name, phone } = req.body;
@@ -118,27 +123,43 @@ export const updateUser = [
       if (phone) user.phone = phone;
 
       if (req.file) {
+        if (!user.photo) {
+          console.log("No file provided, skipping deletion.");
+          return;
+        }
+
+        const filePath = path.resolve(process.cwd(), user.photo);
+
+        if (fs.existsSync(filePath)) {
+          fs.unlink(filePath, (err) => {
+            if (err) console.error("Error deleting file:", err);
+            else console.log("File deleted successfully:", filePath);
+          });
+        } else {
+          console.log("File does not exist:", filePath);
+        }
         user.photo = req.file.path;
       }
+
       await user.save();
       await Activity.create({
         userId: user._id,
-        activityType: "User profile updated"
+        activityType: "User profile updated",
       });
       return res.status(200).json({
         success: true,
         message: "Updated successfully",
-        user
+        user,
       });
     } catch (error) {
       console.error("Error updating user", error);
       return res.status(500).json({
         success: false,
         message: "Internal server error",
-        error: (error as Error).message
+        error: (error as Error).message,
       });
     }
-  }
+  },
 ];
 
 export const updateSpecificFields = async (req: Request, res: Response) => {
@@ -149,7 +170,7 @@ export const updateSpecificFields = async (req: Request, res: Response) => {
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized, token not provided"
+        message: "Unauthorized, token not provided",
       });
     }
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
@@ -157,12 +178,8 @@ export const updateSpecificFields = async (req: Request, res: Response) => {
     };
     const userId = decodedToken.id;
 
-    const {
-      language,
-      is_biomatric,
-      is_two_factor,
-      is_email_notification,
-    } = req.body;
+    const { language, is_biomatric, is_two_factor, is_email_notification } =
+      req.body;
     const updateFields: {
       [key: string]: any;
     } = {};
@@ -178,30 +195,30 @@ export const updateSpecificFields = async (req: Request, res: Response) => {
     if (Object.keys(updateFields).length == 0) {
       return res.status(400).json({
         success: false,
-        message: "No valid fields provided to update"
+        message: "No valid fields provided to update",
       });
     }
     const updatedUser = await User.findByIdAndUpdate(userId, updateFields, {
-      new: true
+      new: true,
     });
 
     if (!updatedUser) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
     res.status(200).json({
       success: true,
       message: "User updated successfully",
-      user: updatedUser
+      user: updatedUser,
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: "Error updating user fields"
+      message: "Error updating user fields",
     });
   }
 };
@@ -254,7 +271,10 @@ export const changePassword = async (req: Request, res: Response) => {
     }
 
     // Compare the old password
-    const isOldPasswordCorrect = await comparePassword(oldPassword, user.password);
+    const isOldPasswordCorrect = await comparePassword(
+      oldPassword,
+      user.password
+    );
     if (!isOldPasswordCorrect) {
       return res.status(400).json({
         success: false,
@@ -270,7 +290,7 @@ export const changePassword = async (req: Request, res: Response) => {
     await user.save();
     await Activity.create({
       userId: user._id,
-      activityType: "Password changed"
+      activityType: "Password changed",
     });
 
     return res.status(200).json({
