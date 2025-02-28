@@ -32,7 +32,9 @@ app.use(passport.initialize());
 app.use(passport.session()); 
 
 // Security headers
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 // CORS configuration
 const allowedOrigins = [
@@ -51,18 +53,22 @@ app.use(
         callback(new Error("Not allowed by CORS"));
       }
     },
-    credentials: true, // Allow credentials (cookies)
+    credentials: true, 
     methods: "GET,POST,PUT,DELETE,OPTIONS,PATCH",
     allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Cross-Origin-Resource-Policy"]
   })
 );
+
 
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
 app.use(rateLimit);
 
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+// app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use('/uploads', express.static('uploads'));
+
 
 app.get("/test", (req, res)=> {
   res.status(200).json({message: "server working"})

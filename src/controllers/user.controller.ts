@@ -161,6 +161,7 @@ export const updateSpecificFields = async (req: Request, res: Response) => {
       language,
       is_biomatric,
       is_two_factor,
+      is_email_notification,
     } = req.body;
     const updateFields: {
       [key: string]: any;
@@ -171,6 +172,8 @@ export const updateSpecificFields = async (req: Request, res: Response) => {
       updateFields.is_biomatric = is_biomatric;
     if (typeof is_two_factor == "boolean")
       updateFields.is_two_factor = is_two_factor;
+    if (typeof is_email_notification == "boolean")
+      updateFields.is_email_notification = is_email_notification;
 
     if (Object.keys(updateFields).length == 0) {
       return res.status(400).json({

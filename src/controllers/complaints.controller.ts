@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import Complaint from "../models/complaint.model";
+import User from "../models/users.model";
 
 export const createComplaint = async (req: Request, res: Response) => {
   try {
@@ -27,12 +28,21 @@ export const createComplaint = async (req: Request, res: Response) => {
       });
     }
 
+    const user = await User.findById(userId).select('name email');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
     const newComplaint = new Complaint({
       user_id: userId,
+      complain_user_name: user.name,
+      complain_user_email: user.email,
       issue,
       subject,
       description,
-      // If complaint_status is provided and valid, use it; otherwise, default to "Pending"
       complaint_status: complaint_status && ["Pending", "Resolved"].includes(complaint_status)
         ? complaint_status
         : "Pending",
@@ -55,6 +65,7 @@ export const createComplaint = async (req: Request, res: Response) => {
 };
 
 
+
 export const getUserComplaints = async (req: Request, res: Response) => {
   try {
     const complaints = await Complaint.find({}).sort({ createdAt: -1 });
@@ -69,6 +80,34 @@ export const getUserComplaints = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Internal server error"
+    });
+  }
+};
+
+export const getComplaintById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const complaint = await Complaint.findById(id);
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Complaint fetched successfully",
+      complaint,
+    });
+  } catch (error) {
+    console.error("Error fetching complaint by ID:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: (error as Error).message,
     });
   }
 };

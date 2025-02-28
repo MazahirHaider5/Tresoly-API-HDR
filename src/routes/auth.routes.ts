@@ -8,7 +8,9 @@ import {
     verifyPasswordResetOtp,
     toggleTwoFactorAuth,
     verifyTwoFactorLogin,
-    getLoggedInUserData
+    getLoggedInUserData,
+    changePassword,
+    deleteAccount
 } from "../controllers/auth.controller";
 import { verifyAccessToken } from "../utils/jwt";
 import { userSignup, verifySignupOtp } from "../controllers/auth.controller";
@@ -34,5 +36,9 @@ router.get("/google/callback", googleCallback);
 
 router.post('/toggle-2fa', toggleTwoFactorAuth);
 router.post('/verify-2fa', verifyTwoFactorLogin);
+
+router.post('/changePassword', verifyAccessToken, changePassword);
+
+router.delete("/deleteAccount", verifyAccessToken, deleteAccount);
 
 export default router;
