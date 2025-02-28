@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.replyToComplaint = exports.getDataOnTimeFrame = exports.getInfoAboutUsers = exports.activateOrDeactivateUser = exports.SendSetPasswordLink = exports.promoteToAdmin = exports.sendAdminPromotionLink = exports.getDataOfSubscribedOrNot = void 0;
+exports.getDataOnTimeFrame = exports.getInfoAboutUsers = exports.activateOrDeactivateUser = exports.replyToComplaint = exports.SendSetPasswordLink = exports.promoteToAdmin = exports.sendAdminPromotionLink = exports.getDataOfSubscribedOrNot = void 0;
 const crypto_1 = __importDefault(require("crypto"));
 const sendMail_1 = require("../utils/sendMail");
 const users_model_1 = __importDefault(require("../models/users.model"));
@@ -26,7 +26,7 @@ const sendAdminPromotionLink = (req, res) => __awaiter(void 0, void 0, void 0, f
         if (!user) {
             return res.status(404).json({
                 success: false,
-                message: "User not found"
+                message: "User not found",
             });
         }
         const token = crypto_1.default.randomBytes(20).toString("hex");
@@ -35,8 +35,8 @@ const sendAdminPromotionLink = (req, res) => __awaiter(void 0, void 0, void 0, f
         yield users_model_1.default.updateOne({ email }, {
             $set: {
                 reset_token: token,
-                reset_token_expiry: user.reset_token_expiry
-            }
+                reset_token_expiry: user.reset_token_expiry,
+            },
         });
         console.log("Token sent:", token);
         const promotionLink = `http://localhost:3000/admin/promoteToAdmin?token=${token}`;
@@ -45,14 +45,14 @@ const sendAdminPromotionLink = (req, res) => __awaiter(void 0, void 0, void 0, f
         yield (0, sendMail_1.sendMail)(email, subject, body);
         return res.status(200).json({
             success: true,
-            message: "Promotion email send successfully"
+            message: "Promotion email send successfully",
         });
     }
     catch (error) {
         console.error("Error sending promotion link: ", error);
         res.status(500).json({
             success: false,
-            message: "Internal server error"
+            message: "Internal server error",
         });
     }
 });
@@ -64,7 +64,7 @@ const promoteToAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function*
         if (!token) {
             return res.status(400).json({
                 success: false,
-                message: "Invalid request, No token provided"
+                message: "Invalid request, No token provided",
             });
         }
         const user = yield users_model_1.default.findOne({ reset_token: token });
@@ -72,7 +72,7 @@ const promoteToAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function*
         if (!user) {
             return res.status(404).json({
                 success: false,
-                message: "Invalid or Expired token"
+                message: "Invalid or Expired token",
             });
         }
         if (user.reset_token_expiry && user.reset_token_expiry < new Date()) {
@@ -80,7 +80,7 @@ const promoteToAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function*
             console.log("Current Time:", new Date());
             return res.status(400).json({
                 success: false,
-                message: "Token expired"
+                message: "Token expired",
             });
         }
         user.role = "admin";
@@ -89,14 +89,14 @@ const promoteToAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function*
         yield user.save();
         return res.status(200).json({
             success: true,
-            message: "User promoted to Admin successfully"
+            message: "User promoted to Admin successfully",
         });
     }
     catch (error) {
         console.error("Error promoting user to admin: ", error);
         return res.status(500).json({
             success: false,
-            message: "Internal server error"
+            message: "Internal server error",
         });
     }
 });
@@ -135,6 +135,7 @@ const SendSetPasswordLink = (req, res) => __awaiter(void 0, void 0, void 0, func
             res
                 .status(400)
                 .json({ success: false, message: "all fields are required" });
+            return;
         }
         const check = yield users_model_1.default.findOne({ email: email });
         if (check) {
@@ -143,194 +144,19 @@ const SendSetPasswordLink = (req, res) => __awaiter(void 0, void 0, void 0, func
                 .json({ success: false, message: "user already exists" });
         }
         const user = yield users_model_1.default.create({
-            email
+            email,
         });
         const passwordSetLink = `${process.env.FRONT_END_URL}/set-password`;
         const subject = "Set Password  Request";
         const body = `Click the link below to become set password:\n\n${passwordSetLink}\n\n.`;
         yield (0, sendMail_1.sendMail)(email, subject, body);
-        res.status(200).json({ success: false, message: "Link sent succesfully" });
+        res.status(200).json({ success: true, message: "Link sent succesfully" });
     }
     catch (error) {
         res.status(400).json({ success: false, message: error });
     }
 });
 exports.SendSetPasswordLink = SendSetPasswordLink;
-const activateOrDeactivateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { action, user_id } = req.query;
-    if (!action) {
-        return res
-            .status(400)
-            .json({ success: false, message: "action is not defined" });
-    }
-    if (!(action === "activate" || action === "deactivate")) {
-        return res.status(404).json({
-            success: false,
-            message: "action should be activate or deactivate"
-        });
-    }
-    try {
-        const user = yield users_model_1.default.findById(user_id);
-        if (!user) {
-            return res
-                .status(404)
-                .json({ success: false, message: "user not found" });
-        }
-        if (action === "activate") {
-            if (user.account_status === "active") {
-                return res
-                    .status(400)
-                    .json({ success: false, message: "user is already active" });
-            }
-            else {
-                // Correct assignment operator here:
-                user.account_status = "active";
-                yield user.save();
-                return res
-                    .status(200)
-                    .json({ success: true, message: "user activated successfully" });
-            }
-        }
-        else {
-            if (user.account_status !== "active") {
-                return res
-                    .status(400)
-                    .json({ success: false, message: "user is already deactivated" });
-            }
-            else {
-                // Correct assignment operator here:
-                user.account_status = "inactive";
-                yield user.save();
-                return res
-                    .status(200)
-                    .json({ success: true, message: "user deactivated successfully" });
-            }
-        }
-    }
-    catch (error) {
-        return res.status(400).json({ success: false, message: error.message });
-    }
-});
-exports.activateOrDeactivateUser = activateOrDeactivateUser;
-const getInfoAboutUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const activeUsers = yield users_model_1.default.find({ account_status: "active" }).countDocuments();
-        const inactiveUsers = yield users_model_1.default.find({ account_status: "inactive" }).countDocuments();
-        return res
-            .status(200)
-            .json({ success: true, message: { activeUsers, inactiveUsers } });
-    }
-    catch (error) {
-        res.status(400).json({ success: false, message: error.message });
-    }
-});
-exports.getInfoAboutUsers = getInfoAboutUsers;
-const getDataOnTimeFrame = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const timeframe = typeof req.query.timeframe === "string" ? req.query.timeframe : "weekly";
-        // const startDate = getStartDate(timeframe);
-        let groupBy, sortKey;
-        // Define days of the week and months of the year
-        const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-        const monthsOfYear = [
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec"
-        ];
-        if (timeframe === "weekly") {
-            groupBy = { $dayOfWeek: "$createdAt" }; // Group by day of the week
-            sortKey = "_id";
-        }
-        else if (timeframe === "monthly") {
-            groupBy = { $month: "$createdAt" }; // Group by month
-            sortKey = "_id";
-        }
-        else if (timeframe === "yearly") {
-            groupBy = { $year: "$createdAt" }; // Group by year
-            sortKey = "_id";
-        }
-        else {
-            return res.status(400).json({ error: "Invalid timeframe" });
-        }
-        // Aggregation pipeline
-        const data = yield users_model_1.default.aggregate([
-            //   { $match: { createdAt: { $gte: startDate } } }, // Filter by start date
-            { $group: { _id: groupBy, count: { $sum: 1 } } }, // Group by the time frame
-            { $sort: { [sortKey]: 1 } } // Sort by day, month, or year
-        ]);
-        let result;
-        if (timeframe === "weekly") {
-            // Map data to days of the week
-            result = daysOfWeek.map((day, index) => {
-                // Adjust for 1-based indexing (Sunday is 1)
-                const dayData = data.find((d) => d._id === index + 1);
-                return {
-                    day,
-                    count: dayData ? dayData.count : 0 // Default to 0 if no data
-                };
-            });
-            // Structure data for the response
-            const dataSets = {
-                Weekly: {
-                    series: [
-                        { name: "Users", type: "area", data: result.map((d) => d.count) }
-                    ],
-                    categories: daysOfWeek
-                }
-            };
-            return res.json(dataSets);
-        }
-        else if (timeframe === "monthly") {
-            // Map data to months
-            result = monthsOfYear.map((month, index) => {
-                const monthData = data.find((d) => d._id === index + 1);
-                return {
-                    month,
-                    count: monthData ? monthData.count : 0 // Default to 0 if no data
-                };
-            });
-            // Structure data for the response
-            const dataSets = {
-                Monthly: {
-                    series: [
-                        { name: "Users", type: "area", data: result.map((d) => d.count) }
-                    ],
-                    categories: monthsOfYear
-                }
-            };
-            return res.json(dataSets);
-        }
-        else if (timeframe === "yearly") {
-            // Structure yearly data
-            result = data.map((d) => ({
-                year: d._id,
-                count: d.count
-            }));
-            const dataSets = {
-                Yearly: {
-                    series: [
-                        { name: "Users", type: "area", data: result.map((d) => d.count) }
-                    ],
-                    categories: result.map((d) => d.year.toString())
-                }
-            };
-            return res.json(dataSets);
-        }
-    }
-    catch (error) {
-        res.status(500).json({ error: "Error fetching data", details: error });
-    }
-});
-exports.getDataOnTimeFrame = getDataOnTimeFrame;
 const replyToComplaint = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { ticket_id, replyText, email } = req.body;
     if (!ticket_id || !replyText || !email) {
@@ -378,3 +204,182 @@ const replyToComplaint = (req, res) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.replyToComplaint = replyToComplaint;
+const activateOrDeactivateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { action, user_id } = req.query;
+    if (!action) {
+        return res
+            .status(400)
+            .json({ success: false, message: "action is not defined" });
+    }
+    if (!(action === "activate" || action === "deactivate")) {
+        return res.status(404).json({
+            success: false,
+            message: "action should be activate or deactivate",
+        });
+    }
+    try {
+        const user = yield users_model_1.default.findById(user_id);
+        if (!user) {
+            return res
+                .status(404)
+                .json({ success: false, message: "user not found" });
+        }
+        if (action === "activate") {
+            if (user.account_status === "active") {
+                return res
+                    .status(400)
+                    .json({ success: false, message: "user is already active" });
+            }
+            else {
+                // Correct assignment operator here:
+                user.account_status = "active";
+                yield user.save();
+                return res
+                    .status(200)
+                    .json({ success: true, message: "user activated successfully" });
+            }
+        }
+        else {
+            if (user.account_status !== "active") {
+                return res
+                    .status(400)
+                    .json({ success: false, message: "user is already deactivated" });
+            }
+            else {
+                // Correct assignment operator here:
+                user.account_status = "inactive";
+                yield user.save();
+                return res
+                    .status(200)
+                    .json({ success: true, message: "user deactivated successfully" });
+            }
+        }
+    }
+    catch (error) {
+        return res.status(400).json({ success: false, message: error.message });
+    }
+});
+exports.activateOrDeactivateUser = activateOrDeactivateUser;
+const getInfoAboutUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const activeUsers = yield users_model_1.default.find({
+            account_status: "active",
+        }).countDocuments();
+        const inactiveUsers = yield users_model_1.default.find({
+            account_status: "inactive",
+        }).countDocuments();
+        return res
+            .status(200)
+            .json({ success: true, message: { activeUsers, inactiveUsers } });
+    }
+    catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+});
+exports.getInfoAboutUsers = getInfoAboutUsers;
+const getDataOnTimeFrame = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const timeframe = typeof req.query.timeframe === "string" ? req.query.timeframe : "weekly";
+        // const startDate = getStartDate(timeframe);
+        let groupBy, sortKey;
+        // Define days of the week and months of the year
+        const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        const monthsOfYear = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+        ];
+        if (timeframe === "weekly") {
+            groupBy = { $dayOfWeek: "$createdAt" }; // Group by day of the week
+            sortKey = "_id";
+        }
+        else if (timeframe === "monthly") {
+            groupBy = { $month: "$createdAt" }; // Group by month
+            sortKey = "_id";
+        }
+        else if (timeframe === "yearly") {
+            groupBy = { $year: "$createdAt" }; // Group by year
+            sortKey = "_id";
+        }
+        else {
+            return res.status(400).json({ error: "Invalid timeframe" });
+        }
+        // Aggregation pipeline
+        const data = yield users_model_1.default.aggregate([
+            //   { $match: { createdAt: { $gte: startDate } } }, // Filter by start date
+            { $group: { _id: groupBy, count: { $sum: 1 } } }, // Group by the time frame
+            { $sort: { [sortKey]: 1 } }, // Sort by day, month, or year
+        ]);
+        let result;
+        if (timeframe === "weekly") {
+            // Map data to days of the week
+            result = daysOfWeek.map((day, index) => {
+                // Adjust for 1-based indexing (Sunday is 1)
+                const dayData = data.find((d) => d._id === index + 1);
+                return {
+                    day,
+                    count: dayData ? dayData.count : 0, // Default to 0 if no data
+                };
+            });
+            // Structure data for the response
+            const dataSets = {
+                Weekly: {
+                    series: [
+                        { name: "Users", type: "area", data: result.map((d) => d.count) },
+                    ],
+                    categories: daysOfWeek,
+                },
+            };
+            return res.json(dataSets);
+        }
+        else if (timeframe === "monthly") {
+            // Map data to months
+            result = monthsOfYear.map((month, index) => {
+                const monthData = data.find((d) => d._id === index + 1);
+                return {
+                    month,
+                    count: monthData ? monthData.count : 0, // Default to 0 if no data
+                };
+            });
+            // Structure data for the response
+            const dataSets = {
+                Monthly: {
+                    series: [
+                        { name: "Users", type: "area", data: result.map((d) => d.count) },
+                    ],
+                    categories: monthsOfYear,
+                },
+            };
+            return res.json(dataSets);
+        }
+        else if (timeframe === "yearly") {
+            // Structure yearly data
+            result = data.map((d) => ({
+                year: d._id,
+                count: d.count,
+            }));
+            const dataSets = {
+                Yearly: {
+                    series: [
+                        { name: "Users", type: "area", data: result.map((d) => d.count) },
+                    ],
+                    categories: result.map((d) => d.year.toString()),
+                },
+            };
+            return res.json(dataSets);
+        }
+    }
+    catch (error) {
+        res.status(500).json({ error: "Error fetching data", details: error });
+    }
+});
+exports.getDataOnTimeFrame = getDataOnTimeFrame;

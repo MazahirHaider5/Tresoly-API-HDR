@@ -44,6 +44,7 @@ const allowedOrigins = [
     "http://localhost:4000",
     "http://localhost:3001",
     "https://tresoly-api-hdr.onrender.com",
+    "https://tresoly-dashboard-hdr.vercel.app"
 ];
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {

@@ -62,6 +62,30 @@ const VaultSchema = new mongoose_1.Schema({
         type: String,
         required: false,
     },
+    password_health_score: {
+        type: Number,
+        required: false,
+    },
+    password_age: {
+        type: Number,
+        required: false,
+    },
+    password_strength: {
+        type: String,
+        required: false,
+    },
+    password_vulnerability: {
+        type: String,
+        required: false,
+    },
+    password_reuse: {
+        type: Boolean,
+        default: false,
+    },
+    two_factor_enabled: {
+        type: Boolean,
+        default: false,
+    },
     tags: {
         type: [String],
         required: false,
