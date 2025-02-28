@@ -1,14 +1,14 @@
 import { Router } from "express";
 import {
-//   getAllComplaints,
-//   getAllSubscriptions,
+  //   getAllComplaints,
+  //   getAllSubscriptions,
   promoteToAdmin,
   sendAdminPromotionLink,
   SendSetPasswordLink,
-//   replyToComplaint,
+  //   replyToComplaint,
   activateOrDeactivateUser,
   getInfoAboutUsers,
-  getDataOnTimeFrame
+  getDataOnTimeFrame,
 } from "../controllers/admin.controller";
 
 const router = Router();

@@ -8,7 +8,6 @@ export const getDataOfSubscribedOrNot = async (
   res: Response
 ) => {};
 
-
 export const sendAdminPromotionLink = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
@@ -17,7 +16,7 @@ export const sendAdminPromotionLink = async (req: Request, res: Response) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
     const token = crypto.randomBytes(20).toString("hex");
@@ -28,8 +27,8 @@ export const sendAdminPromotionLink = async (req: Request, res: Response) => {
       {
         $set: {
           reset_token: token,
-          reset_token_expiry: user.reset_token_expiry
-        }
+          reset_token_expiry: user.reset_token_expiry,
+        },
       }
     );
 
@@ -43,13 +42,13 @@ export const sendAdminPromotionLink = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
-      message: "Promotion email send successfully"
+      message: "Promotion email send successfully",
     });
   } catch (error) {
     console.error("Error sending promotion link: ", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: "Internal server error",
     });
   }
 };
@@ -61,7 +60,7 @@ export const promoteToAdmin = async (req: Request, res: Response) => {
     if (!token) {
       return res.status(400).json({
         success: false,
-        message: "Invalid request, No token provided"
+        message: "Invalid request, No token provided",
       });
     }
     const user = await User.findOne({ reset_token: token });
@@ -70,7 +69,7 @@ export const promoteToAdmin = async (req: Request, res: Response) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "Invalid or Expired token"
+        message: "Invalid or Expired token",
       });
     }
     if (user.reset_token_expiry && user.reset_token_expiry < new Date()) {
@@ -78,7 +77,7 @@ export const promoteToAdmin = async (req: Request, res: Response) => {
       console.log("Current Time:", new Date());
       return res.status(400).json({
         success: false,
-        message: "Token expired"
+        message: "Token expired",
       });
     }
     user.role = "admin";
@@ -89,13 +88,13 @@ export const promoteToAdmin = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
-      message: "User promoted to Admin successfully"
+      message: "User promoted to Admin successfully",
     });
   } catch (error) {
     console.error("Error promoting user to admin: ", error);
     return res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: "Internal server error",
     });
   }
 };
@@ -136,6 +135,7 @@ export const SendSetPasswordLink = async (req: Request, res: Response) => {
       res
         .status(400)
         .json({ success: false, message: "all fields are required" });
+      return;
     }
     const check = await User.findOne({ email: email });
     if (check) {
@@ -144,14 +144,14 @@ export const SendSetPasswordLink = async (req: Request, res: Response) => {
         .json({ success: false, message: "user already exists" });
     }
     const user = await User.create({
-      email
+      email,
     });
     const passwordSetLink = `${process.env.FRONT_END_URL}/set-password`;
 
     const subject = "Set Password  Request";
     const body = `Click the link below to become set password:\n\n${passwordSetLink}\n\n.`;
     await sendMail(email, subject, body);
-    res.status(200).json({ success: false, message: "Link sent succesfully" });
+    res.status(200).json({ success: true, message: "Link sent succesfully" });
   } catch (error) {
     res.status(400).json({ success: false, message: error });
   }
@@ -215,7 +215,7 @@ export const activateOrDeactivateUser = async (req: Request, res: Response) => {
   if (!(action === "activate" || action === "deactivate")) {
     return res.status(404).json({
       success: false,
-      message: "action should be activate or deactivate"
+      message: "action should be activate or deactivate",
     });
   }
   try {
@@ -257,12 +257,14 @@ export const activateOrDeactivateUser = async (req: Request, res: Response) => {
   }
 };
 
-
-
 export const getInfoAboutUsers = async (req: Request, res: Response) => {
   try {
-    const activeUsers = await User.find({ account_status: "active" }).countDocuments();
-    const inactiveUsers = await User.find({ account_status: "inactive" }).countDocuments();
+    const activeUsers = await User.find({
+      account_status: "active",
+    }).countDocuments();
+    const inactiveUsers = await User.find({
+      account_status: "inactive",
+    }).countDocuments();
     return res
       .status(200)
       .json({ success: true, message: { activeUsers, inactiveUsers } });
@@ -270,7 +272,6 @@ export const getInfoAboutUsers = async (req: Request, res: Response) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
-
 
 export const getDataOnTimeFrame = async (req: Request, res: Response) => {
   try {
@@ -296,7 +297,7 @@ export const getDataOnTimeFrame = async (req: Request, res: Response) => {
       "Sep",
       "Oct",
       "Nov",
-      "Dec"
+      "Dec",
     ];
 
     if (timeframe === "weekly") {
@@ -314,9 +315,9 @@ export const getDataOnTimeFrame = async (req: Request, res: Response) => {
 
     // Aggregation pipeline
     const data = await User.aggregate([
-    //   { $match: { createdAt: { $gte: startDate } } }, // Filter by start date
+      //   { $match: { createdAt: { $gte: startDate } } }, // Filter by start date
       { $group: { _id: groupBy, count: { $sum: 1 } } }, // Group by the time frame
-      { $sort: { [sortKey]: 1 } } // Sort by day, month, or year
+      { $sort: { [sortKey]: 1 } }, // Sort by day, month, or year
     ]);
 
     let result;
@@ -327,7 +328,7 @@ export const getDataOnTimeFrame = async (req: Request, res: Response) => {
         const dayData = data.find((d) => d._id === index + 1);
         return {
           day,
-          count: dayData ? dayData.count : 0 // Default to 0 if no data
+          count: dayData ? dayData.count : 0, // Default to 0 if no data
         };
       });
 
@@ -335,10 +336,10 @@ export const getDataOnTimeFrame = async (req: Request, res: Response) => {
       const dataSets = {
         Weekly: {
           series: [
-            { name: "Users", type: "area", data: result.map((d) => d.count) }
+            { name: "Users", type: "area", data: result.map((d) => d.count) },
           ],
-          categories: daysOfWeek
-        }
+          categories: daysOfWeek,
+        },
       };
 
       return res.json(dataSets);
@@ -348,7 +349,7 @@ export const getDataOnTimeFrame = async (req: Request, res: Response) => {
         const monthData = data.find((d) => d._id === index + 1);
         return {
           month,
-          count: monthData ? monthData.count : 0 // Default to 0 if no data
+          count: monthData ? monthData.count : 0, // Default to 0 if no data
         };
       });
 
@@ -356,10 +357,10 @@ export const getDataOnTimeFrame = async (req: Request, res: Response) => {
       const dataSets = {
         Monthly: {
           series: [
-            { name: "Users", type: "area", data: result.map((d) => d.count) }
+            { name: "Users", type: "area", data: result.map((d) => d.count) },
           ],
-          categories: monthsOfYear
-        }
+          categories: monthsOfYear,
+        },
       };
 
       return res.json(dataSets);
@@ -367,16 +368,16 @@ export const getDataOnTimeFrame = async (req: Request, res: Response) => {
       // Structure yearly data
       result = data.map((d) => ({
         year: d._id,
-        count: d.count
+        count: d.count,
       }));
 
       const dataSets = {
         Yearly: {
           series: [
-            { name: "Users", type: "area", data: result.map((d) => d.count) }
+            { name: "Users", type: "area", data: result.map((d) => d.count) },
           ],
-          categories: result.map((d) => d.year.toString())
-        }
+          categories: result.map((d) => d.year.toString()),
+        },
       };
 
       return res.json(dataSets);
@@ -385,7 +386,3 @@ export const getDataOnTimeFrame = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Error fetching data", details: error });
   }
 };
-
-
-
-

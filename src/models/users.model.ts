@@ -38,66 +38,68 @@ const UserSchema: Schema = new Schema<IUser>({
   email: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
   },
   name: {
     type: String,
-    required: false
+    required: false,
   },
   phone: {
     type: String,
-    required: false
+    required: false,
   },
   password: {
     type: String,
-    default: ""
+    default: "",
   },
   photo: {
-    type: String
+    type: String,
+    default:
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcStPiNn0fUvoPmedC8HjMSk7X2QATdqGz-FIQ&s",
   },
   stripe_customer_id: {
     type: String,
-    default: null
+    default: null,
   },
   otp: {
     type: String,
-    default: null
+    default: null,
   },
   otp_expiry: {
     type: Date,
-    default: () => new Date(Date.now() + 10 * 60 * 1000) // 10 minutes from now
+    default: () => new Date(Date.now() + 10 * 60 * 1000), // 10 minutes from now
   },
   is_verified: {
     type: Boolean,
-    default: false
+    default: false,
   },
   language: {
     type: String,
-    default: "English"
+    default: "English",
   },
   currency: {
     type: String,
-    default: "US"
+    default: "US",
   },
   is_biomatric: {
     type: Boolean,
-    default: false
+    default: false,
   },
   is_two_factor: {
     type: Boolean,
-    default: false
+    default: false,
   },
   is_email_notification: {
     type: Boolean,
-    default: false
+    default: false,
   },
   signup_date: {
     type: Date,
-    default: null
+    default: null,
   },
   last_login: {
     type: Date,
-    default: null
+    default: null,
   },
   reset_token: { type: String },
   reset_token_expiry: { type: Date },
@@ -109,7 +111,7 @@ const UserSchema: Schema = new Schema<IUser>({
   two_factor_verified_at: { type: Date },
   auto_lock_time: { type: Number, default: 0 },
   email_notifications: { type: Number, default: 0 },
-  data_breach_alert: { type: Number, default: 0 }
+  data_breach_alert: { type: Number, default: 0 },
 });
 
 export default mongoose.model<IUser>("Users", UserSchema);
