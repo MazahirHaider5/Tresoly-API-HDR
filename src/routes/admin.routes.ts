@@ -14,6 +14,7 @@ import {
 
 const router = Router();
 
+
 router.post("/sendAdminPromotionLink", sendAdminPromotionLink);
 router.get("/promoteToAdmin", promoteToAdmin);
 // router.get("/getAllComplaints", getAllComplaints);
