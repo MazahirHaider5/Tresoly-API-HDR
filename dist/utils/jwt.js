@@ -27,7 +27,8 @@ const verifyToken = (token, secret) => {
 };
 exports.verifyToken = verifyToken;
 const verifyAccessToken = (req, res, next) => {
-    const token = req.cookies.accessToken;
+    var _a;
+    const token = req.cookies.accessToken || ((_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(" ")[1]);
     if (!token) {
         return res.status(401).json({ success: false, message: "No token provided" });
     }

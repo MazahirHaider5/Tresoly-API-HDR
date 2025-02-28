@@ -22,7 +22,6 @@ const index_1 = __importDefault(require("./routes/index"));
 const rateLimiter_1 = require("./middlewares/rateLimiter");
 const passport_1 = __importDefault(require("passport"));
 const express_session_1 = __importDefault(require("express-session"));
-const path_1 = __importDefault(require("path"));
 const PORT = process.env.PORT;
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -36,11 +35,14 @@ app.use((0, express_session_1.default)({
 app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());
 // Security headers
-app.use((0, helmet_1.default)());
+app.use((0, helmet_1.default)({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 // CORS configuration
 const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:4000",
+    "http://localhost:3001",
     "https://tresoly-api-hdr.onrender.com",
 ];
 app.use((0, cors_1.default)({
@@ -52,15 +54,17 @@ app.use((0, cors_1.default)({
             callback(new Error("Not allowed by CORS"));
         }
     },
-    credentials: true, // Allow credentials (cookies)
+    credentials: true,
     methods: "GET,POST,PUT,DELETE,OPTIONS,PATCH",
     allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Cross-Origin-Resource-Policy"]
 }));
 // Middleware
 app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
 app.use(rateLimiter_1.rateLimit);
-app.use("/uploads", express_1.default.static(path_1.default.join(__dirname, "../uploads")));
+// app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use('/uploads', express_1.default.static('uploads'));
 app.get("/test", (req, res) => {
     res.status(200).json({ message: "server working" });
 });
