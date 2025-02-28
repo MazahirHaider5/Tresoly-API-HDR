@@ -178,7 +178,6 @@ export const updateSpecificFields = async (req: Request, res: Response) => {
     };
     const userId = decodedToken.id;
 
-    const { language, is_biomatric, is_two_factor } = req.body;
     const { language, is_biomatric, is_two_factor, is_email_notification } =
       req.body;
     const updateFields: {
