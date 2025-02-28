@@ -178,8 +178,9 @@ export const login = async (req: Request, res: Response) => {
       sameSite: "none",
       maxAge: 24 * 60 * 60 * 1000,
     });
-    
 
+    console.log("accessToken: ", accessToken);
+    
     user.last_login = new Date();
     await user.save();
 
@@ -503,7 +504,8 @@ export const getLoggedInUserData = async (
   res: Response
 ): Promise<void> => {
   try {
-    const token = req.cookies.accessToken;
+    // Get token from cookie or Authorization header
+    const token = req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
 
     if (!token) {
       res.status(401).json({
@@ -512,11 +514,14 @@ export const getLoggedInUserData = async (
       });
       return;
     }
-
+    console.log("Tokeeen in auth.controller: ", token);
+    
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET as string
     ) as { id: string };
+
+    console.log("Tokeeen in auth.controller: ", decoded);
 
     const user = await User.findById(decoded.id).select(
       "-password -two_factor_secret -two_factor_recovery_codes"
@@ -535,6 +540,111 @@ export const getLoggedInUserData = async (
   } catch (error) {
     console.error("Error fetching logged-in user data:", error);
     res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: (error as Error).message,
+    });
+  }
+};
+
+
+export const changePassword = async (req: Request, res: Response) => {
+  const { oldPassword, newPassword } = req.body;
+
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Old password and new password are required",
+    });
+  }
+
+  try {
+    const token = req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "No access token provided. Please log in.",
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string };
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const passwordMatch = await comparePassword(oldPassword, user.password ?? "");
+    if (!passwordMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Incorrect old password",
+      });
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+    user.password = hashedPassword;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: (error as Error).message,
+    });
+  }
+};
+
+export const deleteAccount = async (req: Request, res: Response) => {
+  try {
+    const token = req.cookies.accessToken;
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "No access token provided. Please log in.",
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string };
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    await User.findByIdAndDelete(decoded.id);
+
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+    });
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "User account deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: (error as Error).message,

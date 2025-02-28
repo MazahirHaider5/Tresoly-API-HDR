@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import crypto from "crypto";
 import { sendMail } from "../utils/sendMail";
 import User from "../models/users.model";
+import Complain from "../models/complaint.model";
 
 export const getDataOfSubscribedOrNot = async (
   req: Request,
@@ -156,54 +157,53 @@ export const SendSetPasswordLink = async (req: Request, res: Response) => {
     res.status(400).json({ success: false, message: error });
   }
 };
+export const replyToComplaint = async (req: Request, res: Response) => {
+  const { ticket_id, replyText, email } = req.body;
+  if (!ticket_id || !replyText || !email) {
+    return res
+      .status(400)
+      .json({ success: false, message: "fields are missing" });
+  }
+  try {
+    const complaint = await Complain.findOne({ ticket_id });
+    console.log("Complaint Object:", complaint);
+    if (!complaint) {
+      return res
+        .status(404)
+        .json({ success: false, message: "ticket not found" });
+    }
+    const user = await User.findOne({ email: email });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "user not found" });
+    }
 
-// export const replyToComplaint = async (req: Request, res: Response) => {
-//   const { ticket_id, replyText, email } = req.body;
-//   if (!ticket_id || !replyText || !email) {
-//     return res
-//       .status(400)
-//       .json({ success: false, message: "fields are missing" });
-//   }
-//   try {
-//     const complaint = await Complaint.findOne({ ticket_id });
-//     if (!complaint) {
-//       return res
-//         .status(404)
-//         .json({ success: false, message: "ticket not found" });
-//     }
-//     const user = await User.findOne({ email: email });
-//     if (!user) {
-//       return res
-//         .status(404)
-//         .json({ success: false, message: "user not found" });
-//     }
+    const emailBody = `
+      Dear ${user.name},
 
-//     const emailBody = `
-//       Dear ${user.name},
+      Thank you for reaching out to us via our support section. We have received your concern regarding ${complaint.issue}, and we appreciate your patience.
 
-//       Thank you for reaching out to us via our support section. We have received your concern regarding ${complaint.issue}, and we appreciate your patience.
+      Our Response:
+      ${replyText}
 
-//       Our Response:
-//       ${replyText}
+      If you need any further assistance, please feel free to reply to this email or contact us at support@subtracker.com.
 
-//       If you need any further assistance, please feel free to reply to this email or contact us at support@subtracker.com.
+      Best regards,
+      Support Team
+      SubTracker
+      support@subtracker.com
+    `;
 
-//       Best regards,
-//       Support Team
-//       SubTracker
-//       support@subtracker.com
-//     `;
-
-//     await sendMail(email, "Ticket reply", emailBody);
-//     complaint.status = "Resolved";
-//     complaint.reply = replyText;
-//     await complaint.save();
-//     res.status(200).json({ success: true, message: "reply done successfully" });
-//   } catch (error: any) {
-//     res.status(400).json({ success: false, message: error.message });
-//   }
-// };
-
+    await sendMail(email, "Ticket reply", emailBody);
+    complaint.complaint_status = "Resolved";
+    complaint.reply = replyText;
+    await complaint.save();
+    res.status(200).json({ success: true, message: "reply done successfully" });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
 export const activateOrDeactivateUser = async (req: Request, res: Response) => {
   const { action, user_id } = req.query;
 
