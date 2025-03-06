@@ -12,12 +12,12 @@ import NodeCache from "node-cache";
 import jwt from "jsonwebtoken";
 import Activity from "../models/activity.model";
 
-const userCache = new NodeCache({ stdTTL: 90 });
+const userCache = new NodeCache({ stdTTL: 60 });
 
 export const userSignup = async (req: Request, res: Response) => {
-  const { email, name, phone, password } = req.body;
+  const { email, name, password } = req.body;
 
-  if (!email || !password || !name || !phone) {
+  if (!email || !password) {
     return res
       .status(400)
       .json({ success: false, message: "Missing required fields" });
@@ -32,25 +32,26 @@ export const userSignup = async (req: Request, res: Response) => {
       });
     }
     const hashedPassword = await hashPassword(password);
-    const newUser = new User({
+    const generateOtp = Math.floor(1000 + Math.random() * 9000).toString();
+
+    userCache.set(email, {
       email,
-      name,
-      phone,
+      name: name || "Tresoly User",
       password: hashedPassword,
+      otp: generateOtp,
+      otp_expiry: new Date(Date.now() + 60 * 1000), // OTP expires in 60 seconds
       signup_date: new Date(),
     });
-    await newUser.save();
+
+    const subject = "Tresoly Account Signup Verification";
+    const body = `Your OTP is ${generateOtp}. It will expire in 60 seconds`;
+    await sendMail(email, subject, body);
 
     return res.status(201).json({
       success: true,
-      message: "User registered successfully",
-      user: {
-        id: newUser._id,
-        email: newUser.email,
-        name: newUser.name,
-        phone: newUser.phone,
-      },
+      message: "OTP sent to your email. Please verify to complete registration.",
     });
+
   } catch (error) {
     console.error("Error creating user:", error);
     return res.status(500).json({
@@ -180,7 +181,7 @@ export const login = async (req: Request, res: Response) => {
     });
 
     console.log("accessToken: ", accessToken);
-    
+
     user.last_login = new Date();
     await user.save();
 
@@ -188,7 +189,7 @@ export const login = async (req: Request, res: Response) => {
       success: true,
       message: "Login successful",
       user: userPayload,
-      accessToken: accessToken
+      accessToken: accessToken,
     });
   } catch (error) {
     console.error("Error during login:", error);
@@ -345,7 +346,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     await user.save();
     await Activity.create({
       userId: user._id,
-      activityType: "Password reset"
+      activityType: "Password reset",
     });
 
     return res
@@ -415,7 +416,7 @@ export const toggleTwoFactorAuth = async (req: Request, res: Response) => {
     await user.save();
     await Activity.create({
       userId: user._id,
-      activityType: "Two Factor Authentication changed"
+      activityType: "Two Factor Authentication changed",
     });
 
     return res.status(200).json({
@@ -498,14 +499,14 @@ export const verifyTwoFactorLogin = async (req: Request, res: Response) => {
   }
 };
 
-
 export const getLoggedInUserData = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
     // Get token from cookie or Authorization header
-    const token = req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
+    const token =
+      req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
 
     if (!token) {
       res.status(401).json({
@@ -515,11 +516,10 @@ export const getLoggedInUserData = async (
       return;
     }
     console.log("Tokeeen in auth.controller: ", token);
-    
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET as string
-    ) as { id: string };
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+      id: string;
+    };
 
     console.log("Tokeeen in auth.controller: ", decoded);
 
@@ -547,7 +547,6 @@ export const getLoggedInUserData = async (
   }
 };
 
-
 export const changePassword = async (req: Request, res: Response) => {
   const { oldPassword, newPassword } = req.body;
 
@@ -559,7 +558,8 @@ export const changePassword = async (req: Request, res: Response) => {
   }
 
   try {
-    const token = req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
+    const token =
+      req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
 
     if (!token) {
       return res.status(401).json({
@@ -568,7 +568,9 @@ export const changePassword = async (req: Request, res: Response) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+      id: string;
+    };
     const user = await User.findById(decoded.id);
 
     if (!user) {
@@ -578,7 +580,10 @@ export const changePassword = async (req: Request, res: Response) => {
       });
     }
 
-    const passwordMatch = await comparePassword(oldPassword, user.password ?? "");
+    const passwordMatch = await comparePassword(
+      oldPassword,
+      user.password ?? ""
+    );
     if (!passwordMatch) {
       return res.status(401).json({
         success: false,
@@ -615,7 +620,9 @@ export const deleteAccount = async (req: Request, res: Response) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+      id: string;
+    };
     const user = await User.findById(decoded.id);
 
     if (!user) {
@@ -651,4 +658,3 @@ export const deleteAccount = async (req: Request, res: Response) => {
     });
   }
 };
-

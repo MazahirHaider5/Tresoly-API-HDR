@@ -77,7 +77,7 @@ export const createVault = async (req: Request, res: Response) => {
         !vault_site_address ||
         !vault_username ||
         !password ||
-        !["browser", "mobile", "other"].includes(vault_category)
+        !vault_category
       ) {
         return res.status(400).json({
           success: false,
@@ -454,6 +454,104 @@ export const getRecentlyUsedVaults = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error fetching recent vaults:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: (error as Error).message,
+    });
+  }
+};
+
+export const addVaultToFavourites = async (req: Request, res: Response) => {
+  const { vaultId } = req.params;
+  try {
+    if (!vaultId) {
+      return res.status(400).json({
+        success: false,
+        message: "VaultId is required",
+      });
+    }
+    const vault = await Vault.findById(vaultId);
+    if (!vault) {
+      return res.status(400).json({
+        success: false,
+        message: "Vault not found",
+      });
+    }
+    vault.is_liked = !vault.is_liked;
+    await vault.save();
+    return res.status(200).json({
+      success: true,
+      message: `Vault ${vault.is_liked ? "added to" : "removed from"} favorites`,
+      vault,
+    });
+  } catch (error) {
+    console.error("Error toggling faourite:", error);
+    return res.status(500).json({
+      success: true,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const getFavouriteVaults = async (req: Request, res: Response) => {
+  try {
+    const token =
+      req.cookies.accessToken ||
+      (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+
+      if(!token) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized, token missing"
+        });
+      }
+      const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {id: string};
+      const userId = decodedToken.id;
+
+      const favouriteVaults = await Vault.find({user_id: userId, is_liked: true});
+
+      return res.status(200).json({
+        success: true,
+        message: "Favourite vaults fetched successfully",
+        vaults: favouriteVaults
+      });
+  } catch (error) {
+    console.error("Error fetching favourite vaults: ", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: (error as Error).message
+    });
+  }
+};
+
+
+export const getLastestEditedVaults = async (req: Request, res: Response) => {
+  try {
+    const token = req.cookies.accessToken || 
+    (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized, token missing",
+      });
+    }
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {id: string};
+    const userId = decodedToken.id;
+
+    const lastEditedVaults = await Vault.find({user_id: userId})
+    .sort({updatedAt: -1}).limit(10);
+
+    return res.status(200).json({
+      success: true,
+      message: "Last edited vaults fetched successfully",
+      lastEditedVaults,
+    });
+
+  } catch (error) {
+    console.error("Error fetching vaults: ", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",

@@ -38,7 +38,6 @@ const mongoose_1 = __importStar(require("mongoose"));
 const CategorySchema = new mongoose_1.Schema({
     name: {
         type: String,
-        enum: ["browser", "mobile", "other"],
         required: true,
     },
 }, { timestamps: true });

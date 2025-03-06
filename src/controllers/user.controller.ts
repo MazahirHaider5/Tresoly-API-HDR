@@ -306,3 +306,35 @@ export const changePassword = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const toggleBiometricAuth = async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  try {
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "userId is required",
+      });
+    }
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    user.is_biomatric = !user.is_biomatric;
+    await user.save();
+    return res.status(200).json({
+      success: true,
+      message: `Biometric Auth ${user.is_biomatric ? "enabled" : "disabled"}`,
+      user,
+    });
+  } catch (error) {
+    console.error("Error toggling BioMetric Auth:", error);
+    return res.status(500).json({
+      success: true,
+      message: "Internal server error",
+    });
+  }
+};

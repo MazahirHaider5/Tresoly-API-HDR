@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.changePassword = exports.updateSpecificFields = exports.updateUser = exports.deleteAccount = exports.getUsers = void 0;
+exports.toggleBiometricAuth = exports.changePassword = exports.updateSpecificFields = exports.updateUser = exports.deleteAccount = exports.getUsers = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const users_model_1 = __importDefault(require("../models/users.model"));
@@ -289,3 +289,36 @@ const changePassword = (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
 });
 exports.changePassword = changePassword;
+const toggleBiometricAuth = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { userId } = req.params;
+    try {
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: "userId is required",
+            });
+        }
+        const user = yield users_model_1.default.findById(userId);
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+        user.is_biomatric = !user.is_biomatric;
+        yield user.save();
+        return res.status(200).json({
+            success: true,
+            message: `Biometric Auth ${user.is_biomatric ? "enabled" : "disabled"}`,
+            user,
+        });
+    }
+    catch (error) {
+        console.error("Error toggling BioMetric Auth:", error);
+        return res.status(500).json({
+            success: true,
+            message: "Internal server error",
+        });
+    }
+});
+exports.toggleBiometricAuth = toggleBiometricAuth;

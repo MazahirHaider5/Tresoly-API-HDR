@@ -30,6 +30,9 @@ export interface IUser extends Document {
   auto_lock_time: number;
   email_notifications: number;
   data_breach_alert: number;
+  security_alert_notification: boolean;
+  regular_updates_notification: boolean;
+  promotion_notification: boolean;
 }
 
 // Mongoose schema
@@ -112,6 +115,9 @@ const UserSchema: Schema = new Schema<IUser>({
   auto_lock_time: { type: Number, default: 0 },
   email_notifications: { type: Number, default: 0 },
   data_breach_alert: { type: Number, default: 0 },
+  security_alert_notification: {type: Boolean, default: false},
+  regular_updates_notification: {type: Boolean, default: false},
+  promotion_notification: {type: Boolean, default: false},
 });
 
 export default mongoose.model<IUser>("Users", UserSchema);

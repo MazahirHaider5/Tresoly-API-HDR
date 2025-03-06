@@ -21,10 +21,10 @@ const otp_1 = require("../utils/otp");
 const node_cache_1 = __importDefault(require("node-cache"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const activity_model_1 = __importDefault(require("../models/activity.model"));
-const userCache = new node_cache_1.default({ stdTTL: 90 });
+const userCache = new node_cache_1.default({ stdTTL: 60 });
 const userSignup = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email, name, phone, password } = req.body;
-    if (!email || !password || !name || !phone) {
+    const { email, name, password } = req.body;
+    if (!email || !password) {
         return res
             .status(400)
             .json({ success: false, message: "Missing required fields" });
@@ -38,23 +38,21 @@ const userSignup = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             });
         }
         const hashedPassword = yield (0, bcrypt_1.hashPassword)(password);
-        const newUser = new users_model_1.default({
+        const generateOtp = Math.floor(1000 + Math.random() * 9000).toString();
+        userCache.set(email, {
             email,
-            name,
-            phone,
+            name: name || "Tresoly User",
             password: hashedPassword,
+            otp: generateOtp,
+            otp_expiry: new Date(Date.now() + 60 * 1000), // OTP expires in 60 seconds
             signup_date: new Date(),
         });
-        yield newUser.save();
+        const subject = "Tresoly Account Signup Verification";
+        const body = `Your OTP is ${generateOtp}. It will expire in 60 seconds`;
+        yield (0, sendMail_1.sendMail)(email, subject, body);
         return res.status(201).json({
             success: true,
-            message: "User registered successfully",
-            user: {
-                id: newUser._id,
-                email: newUser.email,
-                name: newUser.name,
-                phone: newUser.phone,
-            },
+            message: "OTP sent to your email. Please verify to complete registration.",
         });
     }
     catch (error) {
@@ -169,7 +167,7 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             success: true,
             message: "Login successful",
             user: userPayload,
-            accessToken: accessToken
+            accessToken: accessToken,
         });
     }
     catch (error) {
@@ -321,7 +319,7 @@ const resetPassword = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         yield user.save();
         yield activity_model_1.default.create({
             userId: user._id,
-            activityType: "Password reset"
+            activityType: "Password reset",
         });
         return res
             .status(200)
@@ -385,7 +383,7 @@ const toggleTwoFactorAuth = (req, res) => __awaiter(void 0, void 0, void 0, func
         yield user.save();
         yield activity_model_1.default.create({
             userId: user._id,
-            activityType: "Two Factor Authentication changed"
+            activityType: "Two Factor Authentication changed",
         });
         return res.status(200).json({
             success: true,

@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRecentlyUsedVaults = exports.getVaultCategoryCounts = exports.getAllVaults = exports.deleteVault = exports.updateVault = exports.getUserVaults = exports.createVault = void 0;
+exports.getLastestEditedVaults = exports.getFavouriteVaults = exports.addVaultToFavourites = exports.getRecentlyUsedVaults = exports.getVaultCategoryCounts = exports.getAllVaults = exports.deleteVault = exports.updateVault = exports.getUserVaults = exports.createVault = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const vaults_model_1 = require("../models/vaults.model");
 const bcrypt_1 = require("../utils/bcrypt");
@@ -71,7 +71,7 @@ const createVault = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                     !vault_site_address ||
                     !vault_username ||
                     !password ||
-                    !["browser", "mobile", "other"].includes(vault_category)) {
+                    !vault_category) {
                     return res.status(400).json({
                         success: false,
                         message: "Invalid or missing required fields",
@@ -395,3 +395,95 @@ const getRecentlyUsedVaults = (req, res) => __awaiter(void 0, void 0, void 0, fu
     }
 });
 exports.getRecentlyUsedVaults = getRecentlyUsedVaults;
+const addVaultToFavourites = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { vaultId } = req.params;
+    try {
+        if (!vaultId) {
+            return res.status(400).json({
+                success: false,
+                message: "VaultId is required",
+            });
+        }
+        const vault = yield vaults_model_1.Vault.findById(vaultId);
+        if (!vault) {
+            return res.status(400).json({
+                success: false,
+                message: "Vault not found",
+            });
+        }
+        vault.is_liked = !vault.is_liked;
+        yield vault.save();
+        return res.status(200).json({
+            success: true,
+            message: `Vault ${vault.is_liked ? "added to" : "removed from"} favorites`,
+            vault,
+        });
+    }
+    catch (error) {
+        console.error("Error toggling faourite:", error);
+        return res.status(500).json({
+            success: true,
+            message: "Internal server error",
+        });
+    }
+});
+exports.addVaultToFavourites = addVaultToFavourites;
+const getFavouriteVaults = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const token = req.cookies.accessToken ||
+            (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized, token missing"
+            });
+        }
+        const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+        const userId = decodedToken.id;
+        const favouriteVaults = yield vaults_model_1.Vault.find({ user_id: userId, is_liked: true });
+        return res.status(200).json({
+            success: true,
+            message: "Favourite vaults fetched successfully",
+            vaults: favouriteVaults
+        });
+    }
+    catch (error) {
+        console.error("Error fetching favourite vaults: ", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message
+        });
+    }
+});
+exports.getFavouriteVaults = getFavouriteVaults;
+const getLastestEditedVaults = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const token = req.cookies.accessToken ||
+            (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized, token missing",
+            });
+        }
+        const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+        const userId = decodedToken.id;
+        const lastEditedVaults = yield vaults_model_1.Vault.find({ user_id: userId })
+            .sort({ updatedAt: -1 }).limit(10);
+        return res.status(200).json({
+            success: true,
+            message: "Last edited vaults fetched successfully",
+            lastEditedVaults,
+        });
+    }
+    catch (error) {
+        console.error("Error fetching vaults: ", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message,
+        });
+    }
+});
+exports.getLastestEditedVaults = getLastestEditedVaults;

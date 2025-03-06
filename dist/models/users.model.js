@@ -113,5 +113,8 @@ const UserSchema = new mongoose_1.Schema({
     auto_lock_time: { type: Number, default: 0 },
     email_notifications: { type: Number, default: 0 },
     data_breach_alert: { type: Number, default: 0 },
+    security_alert_notification: { type: Boolean, default: false },
+    regular_updates_notification: { type: Boolean, default: false },
+    promotion_notification: { type: Boolean, default: false },
 });
 exports.default = mongoose_1.default.model("Users", UserSchema);
