@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const authenticate_1 = require("../middlewares/authenticate");
+const security_controller_1 = require("../controllers/security.controller");
+const router = (0, express_1.Router)();
+router.patch("/toggleSecurityNotifications/:userId", authenticate_1.verifyToken, security_controller_1.toggleSecurityAlert);
+router.patch("/toggleRegularNotifications/:userId", authenticate_1.verifyToken, security_controller_1.toggleRegularAlerts);
+router.patch("/togglePromotionNotifications/:userId", authenticate_1.verifyToken, security_controller_1.togglePromotionAlerts);
+exports.default = router;

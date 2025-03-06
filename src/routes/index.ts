@@ -6,6 +6,7 @@ import complaintRoutes from "./complaint.routes";
 import adminRoutes from "./admin.routes";
 import activityRoutes from "./activities.routes";
 import settingsRoutes from "./settings.routes";
+import securityRoutes from "./security.routes";
 
 const router = express.Router();
 
@@ -16,5 +17,6 @@ router.use("/complaint", complaintRoutes);
 router.use("/admin", adminRoutes);
 router.use("/activities", activityRoutes);
 router.use("/settings", settingsRoutes);
+router.use("/security", securityRoutes);
 
 export default router;

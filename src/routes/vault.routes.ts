@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { verifyToken } from "../middlewares/authenticate";
-import { createVault, deleteVault, getAllVaults, getUserVaults, updateVault, getVaultCategoryCounts, getRecentlyUsedVaults } from "../controllers/vault.controller";
+import { createVault, deleteVault, getAllVaults, getUserVaults, updateVault, getVaultCategoryCounts, getRecentlyUsedVaults, addVaultToFavourites, getFavouriteVaults, getLastestEditedVaults } from "../controllers/vault.controller";
 
 
 const router = Router();
@@ -9,6 +9,11 @@ router.post("/createVault", verifyToken, createVault);
 router.get("/getUserVaults",verifyToken, getUserVaults);
 router.patch("/updateVault/:vaultId",verifyToken, updateVault);
 router.delete("/deleteVault/:vaultId", verifyToken, deleteVault);
+
+router.patch("/toggleFavourite/:vaultId", verifyToken, addVaultToFavourites);
+router.get("/getFavouriteVaults", verifyToken, getFavouriteVaults);
+
+router.get("/getLatestEditedVaults", verifyToken, getLastestEditedVaults);
 
 router.get("/getAllVaults", getAllVaults);
 router.get('/categoryCount', getVaultCategoryCounts);

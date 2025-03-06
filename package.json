@@ -49,6 +49,7 @@
     "@types/passport": "^1.0.17",
     "@types/passport-apple": "^2.0.3",
     "@types/passport-google-oauth20": "^2.0.16",
+    "@types/validator": "^13.12.2",
     "@types/zxcvbn": "^4.4.5",
     "@typescript-eslint/eslint-plugin": "^8.6.0",
     "@typescript-eslint/parser": "^8.6.0",

@@ -8,6 +8,9 @@ router.post("/createVault", authenticate_1.verifyToken, vault_controller_1.creat
 router.get("/getUserVaults", authenticate_1.verifyToken, vault_controller_1.getUserVaults);
 router.patch("/updateVault/:vaultId", authenticate_1.verifyToken, vault_controller_1.updateVault);
 router.delete("/deleteVault/:vaultId", authenticate_1.verifyToken, vault_controller_1.deleteVault);
+router.patch("/toggleFavourite/:vaultId", authenticate_1.verifyToken, vault_controller_1.addVaultToFavourites);
+router.get("/getFavouriteVaults", authenticate_1.verifyToken, vault_controller_1.getFavouriteVaults);
+router.get("/getLatestEditedVaults", authenticate_1.verifyToken, vault_controller_1.getLastestEditedVaults);
 router.get("/getAllVaults", vault_controller_1.getAllVaults);
 router.get('/categoryCount', vault_controller_1.getVaultCategoryCounts);
 router.get('/recentlyUsed', vault_controller_1.getRecentlyUsedVaults);

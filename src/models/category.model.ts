@@ -1,14 +1,13 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface ICategory extends Document {
-  name: "browser" | "mobile" | "other";
+  name: string;
 }
 
 const CategorySchema: Schema = new Schema(
   {
     name: {
-      type: String,
-      enum: ["browser", "mobile", "other"],
+      type: String,   
       required: true,
     },
   },

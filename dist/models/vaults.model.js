@@ -43,7 +43,6 @@ const VaultSchema = new mongoose_1.Schema({
     },
     vault_category: {
         type: String,
-        enum: ["browser", "mobile", "other"],
         required: true,
     },
     vault_site_address: {
