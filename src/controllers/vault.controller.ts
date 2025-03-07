@@ -193,6 +193,52 @@ export const getUserVaults = async (req: Request, res: Response) => {
   }
 };
 
+export const getVaultDetailsById = async (req: Request, res: Response) => {
+  try {
+    const token = req.cookies.accessToken || 
+    (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized, token missing",
+      });
+    }
+
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {id: string};
+    const userId = decodedToken.id;
+
+    const {vault_id} = req.params;
+
+    if(!vault_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Vault id missing"
+      });
+    }
+
+    const vault = await Vault.findOne({_id: vault_id, user_id: userId});
+
+    if(!vault) {
+      return res.status(404).json({
+        success: false,
+        message: "Vault not found"
+      })
+    }
+    return res.status(200).json({
+      success: true,
+      vault,
+    });
+
+  } catch (error) {
+    console.error("Error fetching vault details:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: (error as Error).message,
+    });
+  }
+};
+
 export const updateVault = async (req: Request, res: Response) => {
   try {
     const token =
@@ -445,8 +491,7 @@ export const getRecentlyUsedVaults = async (req: Request, res: Response) => {
     }
     const recentVaults = await Vault.find({ user_id: userId })
       .sort({ updatedAt: -1 })
-      .limit(3)
-      .select("vault_site_address vault_username icon is_liked vault_category");
+      .limit(5);
 
     return res.status(200).json({
       success: true,
