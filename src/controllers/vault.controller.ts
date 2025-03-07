@@ -6,7 +6,8 @@ import User from "../models/users.model";
 import multer from "multer";
 import zxcvbn from "zxcvbn";
 import crypto from "crypto";
-import axios from "axios";
+import mongoose from "mongoose";
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/");
@@ -197,6 +198,7 @@ export const getVaultDetailsById = async (req: Request, res: Response) => {
   try {
     const token = req.cookies.accessToken || 
     (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+    
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -204,26 +206,42 @@ export const getVaultDetailsById = async (req: Request, res: Response) => {
       });
     }
 
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {id: string};
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
     const userId = decodedToken.id;
 
-    const {vault_id} = req.params;
+    const { vault_id } = req.params;
 
-    if(!vault_id) {
+    if (!vault_id) {
       return res.status(400).json({
         success: false,
-        message: "Vault id missing"
+        message: "Vault ID missing",
       });
     }
 
-    const vault = await Vault.findOne({_id: vault_id, user_id: userId});
+    console.log("Vault ID:", vault_id);
+    console.log("User ID:", userId);
 
-    if(!vault) {
+    // Ensure both `vault_id` and `user_id` are valid
+    if (!mongoose.Types.ObjectId.isValid(vault_id) || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Vault ID or User ID",
+      });
+    }
+
+    console.log("Finding vault with:", { _id: vault_id, user_id: userId });
+
+    const vault = await Vault.findOne({ _id: vault_id, user_id: userId });
+    
+    console.log("Vault found:", vault);
+
+    if (!vault) {
       return res.status(404).json({
         success: false,
-        message: "Vault not found"
-      })
+        message: "Vault not found",
+      });
     }
+
     return res.status(200).json({
       success: true,
       vault,
@@ -238,6 +256,7 @@ export const getVaultDetailsById = async (req: Request, res: Response) => {
     });
   }
 };
+
 
 export const updateVault = async (req: Request, res: Response) => {
   try {
