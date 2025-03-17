@@ -10,10 +10,10 @@ import {
     verifyTwoFactorLogin,
     getLoggedInUserData,
     changePassword,
-    deleteAccount
+    deleteAccount,
+    userSignup, verifySignupOtp 
 } from "../controllers/auth.controller";
 import { verifyAccessToken } from "../utils/jwt";
-import { userSignup, verifySignupOtp } from "../controllers/auth.controller";
 import { googleCallback, loginWithGoogle } from "../controllers/googleAuth.controller";
 
 const router = express.Router();
