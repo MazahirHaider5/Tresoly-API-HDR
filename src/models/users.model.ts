@@ -29,10 +29,16 @@ export interface IUser extends Document {
   two_factor_verified_at: Date;
   auto_lock_time: number;
   email_notifications: number;
-  data_breach_alert: number;
   security_alert_notification: boolean;
   regular_updates_notification: boolean;
   promotion_notification: boolean;
+  lowercase_letters: boolean;
+  uppercase_letters: boolean;
+  special_characters: boolean;
+  numbers: boolean;
+  length: number;
+  autolock_time: number;
+  data_breach_alert: boolean;
 }
 
 // Mongoose schema
@@ -112,12 +118,17 @@ const UserSchema: Schema = new Schema<IUser>({
   two_factor_secret: { type: String },
   two_factor_recovery_codes: { type: String },
   two_factor_verified_at: { type: Date },
-  auto_lock_time: { type: Number, default: 0 },
   email_notifications: { type: Number, default: 0 },
-  data_breach_alert: { type: Number, default: 0 },
+  data_breach_alert: { type:  Boolean, default: false },
   security_alert_notification: {type: Boolean, default: false},
   regular_updates_notification: {type: Boolean, default: false},
   promotion_notification: {type: Boolean, default: false},
+  lowercase_letters: {type: Boolean, default: false},
+  uppercase_letters: {type: Boolean, default: false},
+  special_characters: {type: Boolean, default: false},
+  numbers: {type: Boolean, default: false},
+  length: {type: Number},
+  autolock_time: {type: Number, default: 5},
 });
 
 export default mongoose.model<IUser>("Users", UserSchema);
