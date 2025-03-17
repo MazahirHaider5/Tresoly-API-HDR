@@ -11,8 +11,7 @@ import {
     getLoggedInUserData,
     changePassword,
     deleteAccount,
-    userSignup,
-    verifySignupOtp
+    userSignup, verifySignupOtp 
 } from "../controllers/auth.controller";
 import { verifyAccessToken } from "../utils/jwt";
 import { googleCallback, loginWithGoogle } from "../controllers/googleAuth.controller";

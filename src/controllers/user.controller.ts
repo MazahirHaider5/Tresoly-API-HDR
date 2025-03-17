@@ -338,3 +338,59 @@ export const toggleBiometricAuth = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const updateSettingsAndPrivacy = async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  try {
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    const {
+      data_breach_alert,
+      lowercase_letters,
+      uppercase_letters,
+      special_characters,
+      numbers,
+      length,
+      autolock_time,
+    } = req.body;
+
+    const updateUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        data_breach_alert,
+        lowercase_letters,
+        uppercase_letters,
+        special_characters,
+        numbers,
+        length,
+        autolock_time
+      },
+      {new: true, runValidators : true}
+    );
+
+    if (!updateUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    return res.status(200).json({
+      status: false,
+      message: "Settings updated successfully",
+      user: updateUser
+    });
+
+  } catch (error) {
+    console.error("Error updating settings:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: (error as Error).message,
+    });
+  }
+};

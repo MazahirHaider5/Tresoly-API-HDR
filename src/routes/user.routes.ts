@@ -5,6 +5,7 @@ import {
   deleteAccount,
   getUsers,
   toggleBiometricAuth,
+  updateSettingsAndPrivacy,
   updateSpecificFields,
   updateUser,
 } from "../controllers/user.controller";
@@ -22,5 +23,6 @@ router.delete("/deleteAccount",verifyToken, deleteAccount);
 
 router.post("/changePassword", verifyToken, changePassword);
 
+router.patch("/change-settings/:userId", verifyToken, updateSettingsAndPrivacy);
 
 export default router;

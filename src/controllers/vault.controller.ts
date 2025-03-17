@@ -508,13 +508,13 @@ export const getRecentlyUsedVaults = async (req: Request, res: Response) => {
         message: "User not found",
       });
     }
-    const recentVaults = await Vault.find({ user_id: userId })
+    const vaults = await Vault.find({ user_id: userId })
       .sort({ updatedAt: -1 })
       .limit(5);
 
     return res.status(200).json({
       success: true,
-      recentVaults,
+      vaults,
     });
   } catch (error) {
     console.error("Error fetching recent vaults:", error);
@@ -605,13 +605,13 @@ export const getLastestEditedVaults = async (req: Request, res: Response) => {
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {id: string};
     const userId = decodedToken.id;
 
-    const lastEditedVaults = await Vault.find({user_id: userId})
+    const vaults = await Vault.find({user_id: userId})
     .sort({updatedAt: -1}).limit(10);
 
     return res.status(200).json({
       success: true,
       message: "Last edited vaults fetched successfully",
-      lastEditedVaults,
+      vaults,
     });
 
   } catch (error) {
