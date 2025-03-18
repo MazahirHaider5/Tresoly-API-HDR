@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getLastestEditedVaults = exports.getFavouriteVaults = exports.addVaultToFavourites = exports.getRecentlyUsedVaults = exports.getVaultCategoryCounts = exports.getAllVaults = exports.deleteVault = exports.updateVault = exports.getUserVaults = exports.createVault = void 0;
+exports.getLastestEditedVaults = exports.getFavouriteVaults = exports.addVaultToFavourites = exports.getRecentlyUsedVaults = exports.getVaultCategoryCounts = exports.getAllVaults = exports.deleteVault = exports.updateVault = exports.getVaultDetailsById = exports.getUserVaults = exports.createVault = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const vaults_model_1 = require("../models/vaults.model");
 const bcrypt_1 = require("../utils/bcrypt");
@@ -20,6 +20,7 @@ const users_model_1 = __importDefault(require("../models/users.model"));
 const multer_1 = __importDefault(require("multer"));
 const zxcvbn_1 = __importDefault(require("zxcvbn"));
 const crypto_1 = __importDefault(require("crypto"));
+const mongoose_1 = __importDefault(require("mongoose"));
 const storage = multer_1.default.diskStorage({
     destination: function (req, file, cb) {
         cb(null, "uploads/");
@@ -169,6 +170,58 @@ const getUserVaults = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
 });
 exports.getUserVaults = getUserVaults;
+const getVaultDetailsById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const token = req.cookies.accessToken ||
+            (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized, token missing",
+            });
+        }
+        const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+        const userId = decodedToken.id;
+        const { vault_id } = req.params;
+        if (!vault_id) {
+            return res.status(400).json({
+                success: false,
+                message: "Vault ID missing",
+            });
+        }
+        console.log("Vault ID:", vault_id);
+        console.log("User ID:", userId);
+        // Ensure both `vault_id` and `user_id` are valid
+        if (!mongoose_1.default.Types.ObjectId.isValid(vault_id) || !mongoose_1.default.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid Vault ID or User ID",
+            });
+        }
+        console.log("Finding vault with:", { _id: vault_id, user_id: userId });
+        const vault = yield vaults_model_1.Vault.findOne({ _id: vault_id, user_id: userId });
+        console.log("Vault found:", vault);
+        if (!vault) {
+            return res.status(404).json({
+                success: false,
+                message: "Vault not found",
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            vault,
+        });
+    }
+    catch (error) {
+        console.error("Error fetching vault details:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message,
+        });
+    }
+});
+exports.getVaultDetailsById = getVaultDetailsById;
 const updateVault = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const token = req.cookies.accessToken ||
@@ -376,13 +429,12 @@ const getRecentlyUsedVaults = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 message: "User not found",
             });
         }
-        const recentVaults = yield vaults_model_1.Vault.find({ user_id: userId })
+        const vaults = yield vaults_model_1.Vault.find({ user_id: userId })
             .sort({ updatedAt: -1 })
-            .limit(3)
-            .select("vault_site_address vault_username icon is_liked vault_category");
+            .limit(5);
         return res.status(200).json({
             success: true,
-            recentVaults,
+            vaults,
         });
     }
     catch (error) {
@@ -469,12 +521,12 @@ const getLastestEditedVaults = (req, res) => __awaiter(void 0, void 0, void 0, f
         }
         const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
         const userId = decodedToken.id;
-        const lastEditedVaults = yield vaults_model_1.Vault.find({ user_id: userId })
+        const vaults = yield vaults_model_1.Vault.find({ user_id: userId })
             .sort({ updatedAt: -1 }).limit(10);
         return res.status(200).json({
             success: true,
             message: "Last edited vaults fetched successfully",
-            lastEditedVaults,
+            vaults,
         });
     }
     catch (error) {
