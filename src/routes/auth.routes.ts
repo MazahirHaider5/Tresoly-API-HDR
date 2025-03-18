@@ -42,3 +42,4 @@ router.post('/changePassword', verifyAccessToken, changePassword);
 router.delete("/deleteAccount", verifyAccessToken, deleteAccount);
 
 export default router;
+

@@ -132,3 +132,5 @@ const UserSchema: Schema = new Schema<IUser>({
 });
 
 export default mongoose.model<IUser>("Users", UserSchema);
+
+
