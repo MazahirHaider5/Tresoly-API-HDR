@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toggleBiometricAuth = exports.changePassword = exports.updateSpecificFields = exports.updateUser = exports.deleteAccount = exports.getUsers = void 0;
+exports.updateSettingsAndPrivacy = exports.toggleBiometricAuth = exports.changePassword = exports.updateSpecificFields = exports.updateUser = exports.deleteAccount = exports.getUsers = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const users_model_1 = __importDefault(require("../models/users.model"));
@@ -322,3 +322,44 @@ const toggleBiometricAuth = (req, res) => __awaiter(void 0, void 0, void 0, func
     }
 });
 exports.toggleBiometricAuth = toggleBiometricAuth;
+const updateSettingsAndPrivacy = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { userId } = req.params;
+    try {
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+        const { data_breach_alert, lowercase_letters, uppercase_letters, special_characters, numbers, length, autolock_time, } = req.body;
+        const updateUser = yield users_model_1.default.findByIdAndUpdate(userId, {
+            data_breach_alert,
+            lowercase_letters,
+            uppercase_letters,
+            special_characters,
+            numbers,
+            length,
+            autolock_time
+        }, { new: true, runValidators: true });
+        if (!updateUser) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+        return res.status(200).json({
+            status: false,
+            message: "Settings updated successfully",
+            user: updateUser
+        });
+    }
+    catch (error) {
+        console.error("Error updating settings:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message,
+        });
+    }
+});
+exports.updateSettingsAndPrivacy = updateSettingsAndPrivacy;

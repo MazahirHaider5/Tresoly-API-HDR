@@ -10,4 +10,5 @@ router.patch("/updateSpecificDetails", authenticate_1.verifyToken, user_controll
 router.patch("/toggleBioMatricAuth/:userId", authenticate_1.verifyToken, user_controller_1.toggleBiometricAuth);
 router.delete("/deleteAccount", authenticate_1.verifyToken, user_controller_1.deleteAccount);
 router.post("/changePassword", authenticate_1.verifyToken, user_controller_1.changePassword);
+router.patch("/change-settings/:userId", authenticate_1.verifyToken, user_controller_1.updateSettingsAndPrivacy);
 exports.default = router;
