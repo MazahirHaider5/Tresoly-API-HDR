@@ -201,6 +201,65 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+export const socialLogin = async (req: Request, res: Response) => {
+  const { name, email, photo, provider } = req.body;
+
+  if (!email || !provider) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Email and provider are required" });
+  }
+
+  try {
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = new User({
+        name,
+        email,
+        photo: photo || undefined, // Assign `photo` if available, otherwise use default
+        googleId: provider === "google" ? req.body.googleId : undefined,
+        signup_date: new Date(),
+        last_login: new Date(),
+      });
+
+      await user.save();
+    } else {
+      user.last_login = new Date();
+      await user.save();
+    }
+
+    const userPayload: IUser = user.toObject();
+    delete (userPayload as any).password;
+    delete (userPayload as any).two_factor_secret;
+    delete (userPayload as any).two_factor_recovery_codes;
+
+    const accessToken = generateAccessToken(userPayload);
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Social login successful",
+      user: userPayload,
+      accessToken: accessToken,
+    });
+  } catch (error) {
+    console.error("Error during social login:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: (error as Error).message,
+    });
+  }
+};
+
+
 export const requestPasswordResetOtp = async (req: Request, res: Response) => {
   const { email } = req.body;
   if (!email) {

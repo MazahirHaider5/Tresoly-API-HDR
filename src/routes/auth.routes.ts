@@ -11,7 +11,7 @@ import {
     getLoggedInUserData,
     changePassword,
     deleteAccount,
-    userSignup, verifySignupOtp 
+    userSignup, verifySignupOtp, socialLogin
 } from "../controllers/auth.controller";
 import { verifyAccessToken } from "../utils/jwt";
 import { googleCallback, loginWithGoogle } from "../controllers/googleAuth.controller";
@@ -23,6 +23,8 @@ router.post("/verifyOtp", verifySignupOtp);
 
 router.post("/login", login);
 router.post("/logout", logout);
+
+router.post("/social-login", socialLogin);
 
 router.get("/loggedInUserData", verifyAccessToken, getLoggedInUserData);
 
